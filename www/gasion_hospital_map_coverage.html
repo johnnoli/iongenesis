@@ -854,10 +854,11 @@ function updateLabelAppearance(){
 
 updateLabelAppearance();
 
+// Label layout lives in SVG user coordinates and is unaffected by the
+// viewBox, so it's computed once at load — never during pan/zoom.
 function setViewBox(vb){
   svg.setAttribute('viewBox', vb.join(' '));
   currentViewBox=vb;
-  updateLabelAppearance();
 }
 function screenToSvg(clientX, clientY){
   const rect=svg.getBoundingClientRect();
@@ -890,6 +891,10 @@ svg.addEventListener('pointerdown', e=>{
   svg.setPointerCapture(e.pointerId);
   svg.style.cursor='grabbing';
 });
+// Pointer events can fire faster than the display refreshes — batch the
+// viewBox update to one per animation frame for smooth dragging.
+let panRaf=null;
+let pendingVb=null;
 svg.addEventListener('pointermove', e=>{
   if(!isPanning) return;
   const dx=e.clientX-panStart.x;
@@ -900,7 +905,13 @@ svg.addEventListener('pointermove', e=>{
   const rect=svg.getBoundingClientRect();
   const vx = x - dx * (w/rect.width);
   const vy = y - dy * (h/rect.height);
-  setViewBox([vx, vy, w, h]);
+  pendingVb=[vx, vy, w, h];
+  if(panRaf===null){
+    panRaf=requestAnimationFrame(()=>{
+      panRaf=null;
+      if(pendingVb){ setViewBox(pendingVb); pendingVb=null; }
+    });
+  }
 });
 svg.addEventListener('pointerup', e=>{
   isPanning=false;
