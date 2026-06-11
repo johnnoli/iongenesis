@@ -1,0 +1,10 @@
+{
+  "appId": "com.gasion.iongenesis",
+  "appName": "Ion Genesis",
+  "webDir": "www",
+  "server": {
+    "url": "https://genesis.gasioncloud.com",
+    "cleartext": false,
+    "allowNavigation": ["genesis.gasioncloud.com"]
+  }
+}

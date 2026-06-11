@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PH Hospital Coverage Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+.nav-button{display:inline-flex;align-items:center;gap:6px;background:#1a2e1a;color:#fff;text-decoration:none;font-size:11px;font-weight:600;padding:5px 14px;border-radius:7px;border:1px solid #2d4a2d;transition:background .15s;white-space:nowrap;}
+.nav-button:hover{background:#2d4a2d;}
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f0f4f0;
+  --surf:#ffffff;
+  --surf2:#f5f8f5;
+  --bdr:#d8e8d8;
+  --bdr2:#c5d8c5;
+  --txt:#1a2e1a;
+  --sub:#4a6e4a;
+  --mut:#8aaa8a;
+  --acc:#2e7d32;
+  --acc2:#43a047;
+  --acc-light:#e8f5e9;
+  --grn:#2e7d32;
+  --grn2:#66bb6a;
+  --red:#c62828;
+  --ylw:#e65100;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+header{
+  background:var(--surf);
+  border-bottom:2px solid var(--bdr);
+  flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;}
+.bmark{
+  width:28px;height:28px;border-radius:7px;flex-shrink:0;
+  background:var(--acc);
+  display:flex;align-items:center;justify-content:center;
+}
+.bmark svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;}
+.bname{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--txt);}
+.bpipe{width:1px;height:16px;background:var(--bdr2);margin:0 14px;}
+.bsub{font-size:10px;color:var(--sub);letter-spacing:.02em;}
+.fb-dot{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;margin-left:12px;color:var(--mut);
+}
+.fb-dot::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--mut);
+  transition:background .3s;
+}
+.fb-dot.live::before{background:var(--grn);animation:pulse 2s infinite;}
+.fb-dot.live{color:var(--grn);}
+.fb-dot.error::before{background:var(--red);}
+.fb-dot.error{color:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+
+.hstats{display:flex;align-items:center;gap:8px;}
+.hstat{
+  display:flex;align-items:center;gap:6px;
+  background:var(--acc-light);border:1px solid var(--bdr);
+  border-radius:8px;padding:5px 12px;
+}
+.hstat-v{font-size:14px;font-weight:700;color:var(--acc);line-height:1;}
+.hstat-l{font-size:9px;color:var(--sub);letter-spacing:.04em;text-transform:uppercase;}
+.hd{width:1px;height:20px;background:var(--bdr2);margin:0 2px;}
+
+/* TOP FILTER BAR (between live and visited) */
+.top-filter{display:flex;align-items:center;gap:8px;margin-left:18px}
+.filter-group{display:flex;gap:6px;align-items:center}
+.filter-button{
+  background:var(--surf2);border:1px solid var(--bdr);padding:6px 10px;border-radius:9px;font-size:11px;cursor:pointer;color:var(--txt);
+  transition:background .15s,border-color .15s,color .15s,transform .15s;
+}
+.filter-button:hover{transform:translateY(-1px);}
+.filter-button[data-filter="all"]{border-color:#111;color:#111;}
+.filter-button[data-filter="not-logged"]{background:rgba(117,117,117,.12);border-color:rgba(117,117,117,.22);color:#424242;}
+.filter-button[data-filter="logged"]{background:rgba(255,235,59,.18);border-color:rgba(255,235,59,.35);color:#f9a825;}
+.filter-button[data-filter="opportunities"]{background:rgba(198,40,40,.12);border-color:rgba(198,40,40,.22);color:#c62828;}
+.filter-button[data-filter="customer"]{background:rgba(21,101,192,.12);border-color:rgba(21,101,192,.22);color:#1565c0;}
+.filter-button[data-filter="installation"]{background:rgba(46,125,50,.12);border-color:rgba(46,125,50,.22);color:#2e7d32;}
+.filter-button.sel{border-color:transparent;color:#fff;}
+.filter-button.sel[data-filter="all"]{background:#111;color:#fff;}
+.filter-button.sel[data-filter="not-logged"]{background:#616161;}
+.filter-button.sel[data-filter="logged"]{background:#f9a825;color:#111;}
+.filter-button.sel[data-filter="opportunities"]{background:#c62828;}
+.filter-button.sel[data-filter="customer"]{background:#1565c0;}
+.filter-button.sel[data-filter="installation"]{background:#2e7d32;}
+.filter-counts{font-size:11px;color:var(--sub);margin-left:8px}
+.refresh-button{
+  background:var(--surf2);border:1px solid var(--bdr);padding:6px 10px;border-radius:9px;font-size:11px;cursor:pointer;color:var(--txt);margin-left:8px;
+  transition:background .15s,border-color .15s,color .15s,transform .15s;
+}
+.refresh-button:hover{background:var(--acc-light);}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sb{
+  width:252px;background:var(--surf);
+  border-right:2px solid var(--bdr);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+.sbh{padding:12px;border-bottom:1px solid var(--bdr);}
+.sb-filters{display:flex;gap:6px;}
+.srch{position:relative;flex:1;}
+.srch input{
+  width:100%;background:var(--surf2);
+  border:1px solid var(--bdr);border-radius:7px;
+  padding:7px 8px 7px 28px;
+  color:var(--txt);font-family:'Inter',sans-serif;font-size:11px;
+  outline:none;transition:border-color .15s;
+}
+.srch input:focus{border-color:var(--acc);}
+.srch input::placeholder{color:var(--mut);}
+.si{position:absolute;left:9px;top:50%;transform:translateY(-52%);color:var(--mut);font-size:12px;pointer-events:none;}
+.rfsel{
+  background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;
+  padding:0 8px;color:var(--txt);font-family:'Inter',sans-serif;
+  font-size:10px;outline:none;cursor:pointer;
+}
+.rfsel option{background:var(--surf);}
+
+.hospital-list{
+  margin-top:10px;padding:12px;border:1px solid var(--bdr);border-radius:14px;background:var(--surf2);
+}
+.hospital-list-heading{font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px;}
+.hospital-list-note{font-size:11px;color:var(--mut);line-height:1.5;}
+.hospital-list ul{margin:0;padding-left:18px;font-size:11px;color:var(--txt);line-height:1.6;}
+.hospital-list li{margin-bottom:5px;}
+
+/* Province list */
+.pl{flex:1;overflow-y:auto;padding:4px;}
+.pl::-webkit-scrollbar{width:3px;}
+.pl::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px;}
+.pi{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 8px;border-radius:7px;cursor:pointer;
+  transition:background .1s;
+}
+.pi:hover{background:var(--acc-light);}
+.pi.active{background:var(--acc-light);outline:1.5px solid var(--acc);}
+.pd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pii{flex:1;min-width:0;}
+.pn{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt);line-height:1.3;}
+.ps{font-size:9px;color:var(--sub);}
+.pp{font-size:11px;font-weight:600;flex-shrink:0;min-width:32px;text-align:right;color:var(--acc);}
+
+/* Legend */
+.leg{padding:10px 12px 12px;border-top:2px solid var(--bdr);}
+.leg-row{display:flex;align-items:center;gap:8px;}
+.lb{flex:1;height:5px;border-radius:3px;background:linear-gradient(to right,var(--red),var(--ylw),var(--grn));}
+.ll{display:flex;justify-content:space-between;font-size:8px;color:var(--sub);margin-top:4px;}
+.lnd{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:9px;color:var(--mut);}
+.lndd{width:7px;height:7px;background:var(--bg);border:1.5px solid var(--bdr2);border-radius:50%;}
+
+/* MAP */
+.mw{flex:1;background:var(--bg);position:relative;overflow:hidden;}
+.mw::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:
+    linear-gradient(to right,var(--bg) 0%,transparent 28px),
+    linear-gradient(to left, var(--bg) 0%,transparent 28px),
+    linear-gradient(to bottom,var(--bg) 0%,transparent 28px),
+    linear-gradient(to top,  var(--bg) 0%,transparent 28px);
+}
+#mapsvg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible;}
+.zoom-controls{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:10;}
+.zoom-button{width:38px;height:38px;border:none;border-radius:12px;background:rgba(255,255,255,0.96);box-shadow:0 12px 30px rgba(0,0,0,0.12);color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,transform .2s;}
+.zoom-button:hover{background:var(--surf2);transform:translateY(-1px);}
+.zoom-button:active{transform:translateY(0);}
+
+/* Provinces */
+.province{stroke:#c5d8c5;stroke-width:3;cursor:pointer;transition:fill .3s;}
+.province:hover{fill:#d0e8d0;stroke:var(--acc);stroke-width:5;}
+.province.sel{fill:#c5e0c5;stroke:var(--acc);stroke-width:5;}
+.plabel{font-family:'Inter',sans-serif;fill:rgba(74,110,74,0.6);text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none;}
+
+/* TOOLTIP */
+.tip{
+  position:absolute;background:var(--surf);
+  border:1.5px solid var(--bdr2);border-radius:14px;
+  width:240px;z-index:200;
+  box-shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.08);
+  display:none;pointer-events:all;overflow:hidden;
+}
+.tip-head{padding:14px 14px 10px;border-bottom:1px solid var(--bdr);}
+.tc{
+  position:absolute;top:10px;right:10px;
+  width:22px;height:22px;background:var(--surf2);
+  border:none;border-radius:50%;color:var(--sub);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+  transition:background .15s;
+}
+.tc:hover{background:var(--bdr);}
+.treg{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:2px;}
+.tname{font-size:15px;font-weight:700;color:var(--txt);line-height:1.2;padding-right:24px;}
+.tip-body{padding:12px 14px 14px;}
+.tip-pct-row{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;}
+.tip-pct{font-size:32px;font-weight:700;line-height:1;color:var(--acc);}
+.tip-frac{font-size:12px;color:var(--sub);}
+.tip-bar{height:5px;background:var(--acc-light);border-radius:3px;margin-bottom:12px;overflow:hidden;}
+.tip-fill{height:100%;border-radius:3px;background:var(--acc);transition:width .4s;}
+.tip-link{
+  display:block;text-align:center;padding:9px;border-radius:8px;
+  background:var(--acc);color:#fff;text-decoration:none;
+  font-size:11px;font-weight:600;letter-spacing:.04em;
+  transition:background .15s;
+}
+.tip-link:hover{background:var(--acc2);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(70px);
+  background:var(--txt);border-radius:20px;padding:8px 18px;
+  font-size:11px;color:#fff;
+  z-index:9999;transition:transform .2s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="background:#1a2e1a;border-bottom:1px solid #2d4a2d;display:flex;align-items:center;padding:0 16px;height:36px;">
+    <a href="index.html" class="nav-button">⬅️ Back to Dashboard</a>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 20px;height:52px;">
+    <div class="brand">
+      <div class="bmark">
+        <svg viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke-width="2.2"/></svg>
+      </div>
+      <span class="bname">HOSPICOVERAGE PH</span>
+      <div class="bpipe"></div>
+      <span class="bsub">1,879 DOH Facilities</span>
+      <span class="fb-dot" id="fb-status">Connecting</span>
+    </div>
+    <div class="hstats">
+      <div class="hstat">
+        <span class="hstat-v" id="s-v">0</span>
+        <span class="hstat-l">Logged</span>
+      </div>
+      <div class="hd"></div>
+      <div class="hstat">
+        <span class="hstat-v" id="s-t">1879</span>
+        <span class="hstat-l">Total</span>
+      </div>
+      <div class="hd"></div>
+      <div class="hstat">
+        <span class="hstat-v" id="s-p">0%</span>
+        <span class="hstat-l">Coverage</span>
+      </div>
+    </div>
+    <div class="top-filter" id="top-filter">
+      <div class="filter-group" role="toolbar" aria-label="Visit filters">
+        <button class="filter-button sel" data-filter="all">All</button>
+        <button class="filter-button" data-filter="not-logged">Not Logged</button>
+        <button class="filter-button" data-filter="logged">Visited</button>
+        <button class="filter-button" data-filter="opportunities">Opportunities</button>
+        <button class="filter-button" data-filter="customer">Customer</button>
+        <button class="filter-button" data-filter="installation">Installation</button>
+      </div>
+      <div class="filter-counts" id="filter-counts">—</div>
+      <div class="active-filter" id="active-filter" style="font-size:11px;color:var(--mut);margin-left:8px">Filter: All</div>
+      <button class="refresh-button" id="refresh-button" onclick="refreshMapData()">Refresh</button>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sb">
+    <div class="sbh">
+      <div class="sb-filters">
+        <div class="srch">
+          <span class="si">⌕</span>
+          <input type="text" id="srch" placeholder="Search province…">
+        </div>
+        <select class="rfsel" id="rfsel" style="width:72px;">
+          <option value="">All</option>
+          <option value="BARMM">BARMM</option>
+<option value="CAR">CAR</option>
+<option value="NCR">NCR</option>
+<option value="Region I – Ilocos">Region I – Ilocos</option>
+<option value="Region II – Cagayan Valley">Region II – Cagayan Valley</option>
+<option value="Region III – Central Luzon">Region III – Central Luzon</option>
+<option value="Region IV-A – CALABARZON">Region IV-A – CALABARZON</option>
+<option value="Region IV-B – MIMAROPA">Region IV-B – MIMAROPA</option>
+<option value="Region IX – Zamboanga Peninsula">Region IX – Zamboanga Peninsula</option>
+<option value="Region V – Bicol">Region V – Bicol</option>
+<option value="Region VI – Western Visayas">Region VI – Western Visayas</option>
+<option value="Region VII – Central Visayas">Region VII – Central Visayas</option>
+<option value="Region VIII – Eastern Visayas">Region VIII – Eastern Visayas</option>
+<option value="Region X – Northern Mindanao">Region X – Northern Mindanao</option>
+<option value="Region XI – Davao">Region XI – Davao</option>
+<option value="Region XII – SOCCSKSARGEN">Region XII – SOCCSKSARGEN</option>
+<option value="Region XIII – Caraga">Region XIII – Caraga</option>
+        </select>
+      </div>
+    </div>
+    <div class="hospital-list" id="hospital-list">
+      <div class="hospital-list-heading">Logged hospitals</div>
+      <div class="hospital-list-note">Select a city on the map to see hospitals logged there.</div>
+    </div>
+    <div class="pl" id="plist"></div>
+    <div class="leg">
+      <div class="leg-row">
+        <span style="font-size:8px;color:var(--sub)">0%</span>
+        <div class="lb"></div>
+        <span style="font-size:8px;color:var(--sub)">100%</span>
+      </div>
+      <div class="ll"><span>No coverage</span><span>Full coverage</span></div>
+      <div class="lnd"><div class="lndd"></div><span>No data logged</span></div>
+    </div>
+  </div>
+
+  <div class="mw" id="mw">
+    <svg id="mapsvg" viewBox="-999 -9851 6472 10850" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <g id="mg">
+    <path id="p-misamis-oriental" class="province" data-name="Misamis Oriental" data-reg="Region X – Northern Mindanao" d="M3895,-1457.0L3920,-1519.0L3935,-1585.0L3967,-1630.0L3990,-1648.0L4033,-1660.0L4040,-1631.0L4081,-1617.0L4101,-1595.0L4060,-1561.0L4081,-1555.0L4079,-1535.0L4055,-1520.0L4012,-1475.0L3972,-1492.0L3895,-1457.0Z M4271,-1587.0L4223,-1618.0L4236,-1641.0L4221,-1678.0L4221,-1706.0L4245,-1734.0L4240,-1878.0L4247,-1906.0L4266,-1922.0L4329,-1909.0L4351,-1888.0L4404,-1858.0L4464,-1800.0L4511,-1830.0L4516,-1888.0L4506,-1912.0L4522,-1969.0L4524,-1936.0L4542,-1906.0L4602,-1837.0L4581,-1768.0L4582,-1738.0L4599,-1696.0L4602,-1639.0L4340,-1642.0L4305,-1631.0L4271,-1587.0Z"/>
+    <path id="p-tawi-tawi" class="province" data-name="Tawi-Tawi" data-reg="BARMM" d="M672,992.0L665,999.0L670,918.0L666,873.0L652,833.0L674,839.0L696,903.0L692,947.0L672,992.0Z M922,861.0L896,850.0L901,818.0L926,833.0L922,861.0Z M903,729.0L866,744.0L863,727.0L897,687.0L903,729.0Z M1020,684.0L1002,719.0L981,710.0L960,729.0L918,736.0L907,687.0L995,642.0L1010,620.0L1092,596.0L1099,575.0L1167,535.0L1179,549.0L1182,589.0L1204,601.0L1186,683.0L1162,685.0L1161,638.0L1131,647.0L1115,623.0L1106,655.0L1091,668.0L1050,662.0L1036,683.0L1020,684.0Z"/>
+    <path id="p-bohol" class="province" data-name="Bohol" data-reg="Region VII – Central Visayas" d="M3575,-2281.0L3551,-2282.0L3536,-2307.0L3572,-2328.0L3612,-2341.0L3630,-2326.0L3614,-2305.0L3575,-2281.0Z M4120,-2677.0L4114,-2646.0L4090,-2640.0L4076,-2624.0L4064,-2658.0L4106,-2678.0L4120,-2677.0Z M4106,-2501.0L4083,-2490.0L4133,-2450.0L4107,-2403.0L4064,-2408.0L4050,-2427.0L4003,-2391.0L3991,-2353.0L3972,-2338.0L3913,-2318.0L3761,-2310.0L3676,-2325.0L3646,-2334.0L3626,-2354.0L3633,-2394.0L3589,-2407.0L3590,-2449.0L3603,-2476.0L3634,-2505.0L3641,-2524.0L3662,-2524.0L3671,-2540.0L3751,-2568.0L3767,-2614.0L3794,-2625.0L3794,-2642.0L3839,-2679.0L3937,-2691.0L3949,-2684.0L3953,-2656.0L3980,-2684.0L3988,-2663.0L4042,-2625.0L4063,-2626.0L4108,-2599.0L4103,-2564.0L4095,-2574.0L4087,-2533.0L4106,-2501.0Z"/>
+    <path id="p-cebu" class="province" data-name="Cebu" data-reg="Region VII – Central Visayas" d="M3548,-3347.0L3538,-3355.0L3519,-3414.0L3546,-3448.0L3556,-3439.0L3592,-3351.0L3548,-3347.0Z M3673,-2850.0L3654,-2874.0L3631,-2855.0L3608,-2818.0L3629,-2748.0L3589,-2740.0L3530,-2686.0L3520,-2652.0L3493,-2631.0L3479,-2607.0L3480,-2554.0L3467,-2500.0L3452,-2492.0L3391,-2348.0L3377,-2290.0L3348,-2259.0L3298,-2195.0L3280,-2182.0L3266,-2197.0L3261,-2250.0L3295,-2436.0L3321,-2499.0L3325,-2529.0L3307,-2542.0L3309,-2563.0L3325,-2563.0L3333,-2606.0L3389,-2663.0L3406,-2708.0L3438,-2751.0L3448,-2794.0L3521,-2891.0L3533,-2920.0L3528,-2941.0L3552,-2983.0L3559,-3010.0L3615,-3086.0L3659,-3212.0L3671,-3232.0L3660,-3272.0L3678,-3318.0L3697,-3304.0L3682,-3358.0L3694,-3383.0L3726,-3426.0L3744,-3439.0L3764,-3433.0L3742,-3340.0L3714,-3304.0L3726,-3290.0L3751,-3295.0L3756,-3242.0L3750,-3206.0L3759,-3178.0L3729,-3083.0L3731,-3057.0L3749,-3002.0L3742,-2906.0L3722,-2853.0L3728,-2837.0L3711,-2821.0L3702,-2834.0L3673,-2850.0Z"/>
+    <path id="p-basilan" class="province" data-name="Basilan" data-reg="BARMM" d="M2128,-279.0L2101,-322.0L2124,-349.0L2132,-339.0L2128,-279.0Z M2327,-351.0L2347,-326.0L2357,-286.0L2447,-291.0L2419,-349.0L2414,-394.0L2483,-370.0L2494,-354.0L2532,-347.0L2606,-302.0L2582,-288.0L2539,-280.0L2517,-241.0L2507,-200.0L2462,-191.0L2419,-175.0L2355,-169.0L2347,-196.0L2300,-235.0L2297,-283.0L2256,-295.0L2254,-331.0L2273,-346.0L2327,-351.0Z"/>
+    <path id="p-zamboanga-sibugay" class="province" data-name="Zamboanga Sibugay" data-reg="Region IX – Zamboanga Peninsula" d="M3026,-835.0L3019,-806.0L2929,-765.0L2918,-783.0L2914,-825.0L2920,-848.0L2937,-857.0L2963,-833.0L2981,-857.0L3000,-857.0L3026,-835.0Z M2623,-885.0L2557,-884.0L2578,-955.0L2617,-1001.0L2626,-1038.0L2642,-1055.0L2675,-1073.0L2744,-1144.0L2766,-1159.0L2860,-1195.0L2913,-1202.0L2995,-1184.0L3000,-1125.0L3088,-1118.0L3109,-1109.0L3116,-1047.0L3085,-1007.0L3088,-985.0L3074,-974.0L3075,-946.0L3060,-922.0L3060,-891.0L3049,-881.0L3019,-894.0L2996,-935.0L2969,-908.0L2969,-887.0L2943,-875.0L2911,-893.0L2916,-927.0L2937,-922.0L2923,-965.0L2914,-1018.0L2928,-1066.0L2921,-1077.0L2877,-1074.0L2854,-1097.0L2824,-1097.0L2782,-1079.0L2725,-1035.0L2679,-976.0L2672,-956.0L2707,-956.0L2707,-939.0L2679,-903.0L2684,-931.0L2623,-885.0Z"/>
+    <path id="p-sulu" class="province" data-name="Sulu" data-reg="BARMM" d="M1638,437.0L1602,429.0L1586,407.0L1622,387.0L1643,411.0L1638,437.0Z M1586,324.0L1578,305.0L1613,299.0L1629,312.0L1586,324.0Z M1657,294.0L1634,295.0L1643,262.0L1660,280.0L1657,294.0Z M1863,235.0L1817,244.0L1798,231.0L1817,203.0L1839,208.0L1863,235.0Z M2277,74.0L2342,80.0L2292,103.0L2249,77.0L2230,50.0L2277,74.0Z M1413,-61.0L1377,-64.0L1368,-80.0L1388,-87.0L1415,-143.0L1433,-156.0L1443,-122.0L1429,-76.0L1413,-61.0Z M1967,161.0L1942,165.0L1897,196.0L1878,178.0L1878,158.0L1861,140.0L1835,141.0L1762,176.0L1741,157.0L1714,152.0L1664,177.0L1635,154.0L1622,127.0L1645,90.0L1709,62.0L1737,36.0L1786,37.0L1829,58.0L1855,102.0L1891,84.0L1921,97.0L1965,98.0L1991,110.0L1990,137.0L1971,142.0L1967,161.0Z"/>
+    <path id="p-antique" class="province" data-name="Antique" data-reg="Region VI – Western Visayas" d="M2077,-3822.0L2057,-3809.0L2002,-3818.0L2011,-3832.0L2043,-3836.0L2077,-3822.0Z M1996,-3927.0L1976,-3933.0L1969,-3955.0L1974,-4000.0L1999,-3967.0L2006,-3946.0L1996,-3927.0Z M2410,-2891.0L2376,-2870.0L2354,-2872.0L2341,-2895.0L2343,-2923.0L2369,-2972.0L2378,-3001.0L2373,-3058.0L2346,-3102.0L2374,-3189.0L2419,-3264.0L2424,-3295.0L2424,-3409.0L2417,-3454.0L2433,-3494.0L2438,-3573.0L2447,-3584.0L2461,-3694.0L2446,-3739.0L2385,-3750.0L2337,-3764.0L2294,-3769.0L2361,-3808.0L2414,-3804.0L2474,-3770.0L2499,-3729.0L2481,-3690.0L2487,-3656.0L2480,-3629.0L2489,-3615.0L2472,-3576.0L2504,-3534.0L2511,-3504.0L2509,-3468.0L2516,-3404.0L2527,-3378.0L2548,-3357.0L2584,-3324.0L2608,-3287.0L2600,-3252.0L2581,-3237.0L2573,-3205.0L2550,-3187.0L2515,-3111.0L2486,-3075.0L2438,-3044.0L2411,-3009.0L2392,-2912.0L2410,-2891.0Z"/>
+    <path id="p-palawan" class="province" data-name="Palawan" data-reg="Region IV-B – MIMAROPA" d="M49,-611.0L62,-591.0L46,-591.0L45,-562.0L-5,-571.0L-14,-601.0L3,-610.0L49,-611.0Z M-940,-1320.0L-970,-1337.0L-936,-1359.0L-921,-1330.0L-940,-1320.0Z M-828,-1371.0L-858,-1372.0L-862,-1388.0L-839,-1385.0L-828,-1371.0Z M-884,-1415.0L-907,-1414.0L-912,-1433.0L-887,-1428.0L-884,-1415.0Z M-751,-1484.0L-726,-1469.0L-736,-1398.0L-771,-1389.0L-784,-1446.0L-774,-1483.0L-751,-1484.0Z M-806,-1483.0L-788,-1468.0L-821,-1445.0L-843,-1460.0L-801,-1497.0L-806,-1483.0Z M501,-2991.0L526,-2976.0L497,-2978.0L485,-2969.0L473,-2989.0L501,-2991.0Z M1783,-3137.0L1748,-3135.0L1742,-3165.0L1787,-3195.0L1783,-3137.0Z M599,-3276.0L590,-3233.0L572,-3256.0L576,-3279.0L599,-3276.0Z M829,-3284.0L805,-3270.0L783,-3295.0L784,-3330.0L818,-3311.0L829,-3284.0Z M1704,-3347.0L1685,-3361.0L1709,-3372.0L1716,-3360.0L1704,-3347.0Z M819,-3386.0L786,-3358.0L782,-3384.0L807,-3399.0L819,-3386.0Z M861,-3477.0L848,-3441.0L839,-3447.0L836,-3471.0L861,-3477.0Z M1193,-3782.0L1197,-3767.0L1179,-3760.0L1156,-3777.0L1193,-3782.0Z M1252,-3813.0L1245,-3808.0L1203,-3897.0L1252,-3908.0L1256,-3882.0L1243,-3875.0L1252,-3813.0Z M-26,-2372.0L144,-2277.0L112,-2227.0L89,-2204.0L75,-2173.0L48,-2139.0L3,-2112.0L-42,-2059.0L-89,-2050.0L-119,-2036.0L-160,-2036.0L-198,-2016.0L-249,-1899.0L-279,-1856.0L-349,-1818.0L-397,-1782.0L-442,-1734.0L-514,-1710.0L-566,-1714.0L-582,-1708.0L-587,-1665.0L-619,-1605.0L-646,-1610.0L-709,-1592.0L-749,-1569.0L-759,-1551.0L-787,-1533.0L-832,-1492.0L-838,-1513.0L-814,-1561.0L-814,-1603.0L-774,-1673.0L-766,-1697.0L-731,-1726.0L-708,-1768.0L-680,-1776.0L-658,-1797.0L-610,-1869.0L-540,-1930.0L-518,-1975.0L-479,-1990.0L-475,-1979.0L-442,-1993.0L-422,-2044.0L-375,-2071.0L-349,-2109.0L-308,-2106.0L-292,-2112.0L-283,-2089.0L-248,-2128.0L-199,-2159.0L-195,-2190.0L-155,-2214.0L-138,-2252.0L-97,-2280.0L-52,-2335.0L-41,-2372.0L-26,-2372.0Z M-980,-1286.0L-958,-1310.0L-916,-1314.0L-914,-1287.0L-920,-1263.0L-911,-1181.0L-932,-1156.0L-969,-1149.0L-999,-1218.0L-993,-1310.0L-980,-1286.0Z M923,-2976.0L960,-3024.0L1042,-2990.0L1067,-2969.0L1053,-2963.0L1054,-2952.0L1026,-2949.0L1021,-2936.0L998,-2964.0L1002,-2913.0L930,-2890.0L918,-2898.0L912,-2951.0L895,-2956.0L923,-2976.0Z M950,-3604.0L977,-3609.0L983,-3584.0L979,-3558.0L954,-3517.0L954,-3549.0L929,-3554.0L913,-3536.0L877,-3573.0L885,-3584.0L913,-3559.0L923,-3595.0L941,-3572.0L962,-3592.0L950,-3604.0Z M1038,-3755.0L1068,-3778.0L1052,-3796.0L1040,-3776.0L1020,-3783.0L1003,-3816.0L1016,-3825.0L981,-3871.0L972,-3904.0L999,-3895.0L1016,-3921.0L1045,-3893.0L1042,-3886.0L1089,-3882.0L1070,-3873.0L1103,-3846.0L1102,-3805.0L1120,-3791.0L1102,-3773.0L1112,-3759.0L1076,-3719.0L1045,-3708.0L1037,-3719.0L1038,-3755.0Z M1259,-4022.0L1299,-3976.0L1281,-3955.0L1299,-3951.0L1294,-3931.0L1251,-3934.0L1226,-3923.0L1193,-3944.0L1163,-3952.0L1158,-3915.0L1140,-3911.0L1123,-3934.0L1095,-3930.0L1059,-3951.0L1032,-3992.0L1026,-4024.0L1001,-4073.0L978,-4041.0L995,-4151.0L1023,-4146.0L1028,-4125.0L1085,-4103.0L1148,-4044.0L1199,-4007.0L1218,-4016.0L1219,-4079.0L1236,-4056.0L1241,-4020.0L1259,-4022.0Z M387,-2799.0L408,-2804.0L415,-2831.0L382,-2828.0L379,-2844.0L400,-2869.0L440,-2859.0L464,-2882.0L449,-2900.0L473,-2924.0L477,-2861.0L514,-2881.0L546,-2921.0L579,-2936.0L558,-2960.0L587,-2969.0L607,-2991.0L625,-3080.0L607,-3114.0L578,-3113.0L576,-3141.0L545,-3167.0L568,-3194.0L545,-3228.0L562,-3233.0L591,-3221.0L582,-3208.0L588,-3180.0L618,-3148.0L679,-3106.0L691,-3082.0L708,-3091.0L688,-3128.0L700,-3152.0L686,-3166.0L643,-3177.0L627,-3198.0L637,-3221.0L609,-3228.0L615,-3282.0L637,-3267.0L616,-3310.0L621,-3335.0L649,-3304.0L668,-3299.0L686,-3348.0L657,-3391.0L685,-3418.0L680,-3466.0L692,-3493.0L715,-3506.0L735,-3549.0L748,-3493.0L767,-3491.0L778,-3440.0L762,-3385.0L742,-3344.0L771,-3304.0L778,-3275.0L769,-3265.0L746,-3276.0L733,-3245.0L733,-3195.0L742,-3156.0L765,-3143.0L791,-3155.0L794,-3074.0L788,-3044.0L830,-3045.0L839,-3030.0L817,-3030.0L841,-2963.0L876,-2940.0L866,-2924.0L838,-2915.0L824,-2894.0L767,-2843.0L707,-2847.0L629,-2815.0L582,-2770.0L549,-2715.0L537,-2651.0L521,-2633.0L446,-2706.0L451,-2733.0L387,-2799.0Z"/>
+    <path id="p-romblon" class="province" data-name="Romblon" data-reg="Region IV-B – MIMAROPA" d="M2597,-4259.0L2577,-4241.0L2560,-4266.0L2556,-4310.0L2577,-4329.0L2598,-4283.0L2597,-4259.0Z M2196,-4562.0L2217,-4548.0L2207,-4528.0L2184,-4552.0L2196,-4562.0Z M2820,-4240.0L2846,-4193.0L2834,-4136.0L2804,-4111.0L2757,-4136.0L2730,-4176.0L2677,-4198.0L2671,-4233.0L2710,-4254.0L2784,-4253.0L2820,-4240.0Z M2404,-4028.0L2404,-3994.0L2385,-4010.0L2386,-4030.0L2368,-4032.0L2374,-4061.0L2391,-4065.0L2393,-4088.0L2373,-4095.0L2339,-4127.0L2349,-4179.0L2378,-4200.0L2388,-4220.0L2391,-4267.0L2386,-4307.0L2405,-4334.0L2462,-4354.0L2469,-4370.0L2489,-4364.0L2496,-4347.0L2477,-4337.0L2482,-4300.0L2463,-4232.0L2457,-4183.0L2445,-4135.0L2416,-4067.0L2422,-4049.0L2404,-4028.0Z"/>
+    <path id="p-albay" class="province" data-name="Albay" data-reg="Region V – Bicol" d="M3847,-4715.0L3839,-4712.0L3774,-4724.0L3752,-4736.0L3800,-4752.0L3839,-4738.0L3847,-4715.0Z M3684,-4787.0L3700,-4780.0L3740,-4782.0L3765,-4774.0L3740,-4747.0L3726,-4744.0L3669,-4759.0L3653,-4789.0L3684,-4787.0Z M3633,-4749.0L3608,-4776.0L3611,-4808.0L3602,-4826.0L3616,-4832.0L3658,-4816.0L3637,-4778.0L3646,-4760.0L3633,-4749.0Z M3591,-4850.0L3607,-4841.0L3593,-4831.0L3559,-4865.0L3591,-4850.0Z M3378,-4577.0L3342,-4618.0L3305,-4623.0L3256,-4602.0L3239,-4642.0L3235,-4674.0L3252,-4727.0L3244,-4758.0L3345,-4848.0L3369,-4839.0L3379,-4849.0L3415,-4839.0L3432,-4847.0L3442,-4877.0L3435,-4908.0L3413,-4924.0L3414,-4943.0L3441,-4949.0L3490,-4920.0L3526,-4873.0L3532,-4837.0L3551,-4812.0L3574,-4801.0L3592,-4757.0L3614,-4748.0L3556,-4745.0L3545,-4698.0L3558,-4669.0L3542,-4656.0L3542,-4637.0L3562,-4628.0L3590,-4642.0L3624,-4690.0L3667,-4674.0L3649,-4631.0L3571,-4615.0L3484,-4624.0L3415,-4606.0L3378,-4577.0Z"/>
+    <path id="p-camarines-sur" class="province" data-name="Camarines Sur" data-reg="Region V – Bicol" d="M3479,-5249.0L3494,-5233.0L3458,-5204.0L3442,-5230.0L3458,-5229.0L3479,-5249.0Z M3244,-4758.0L3214,-4781.0L3177,-4834.0L3181,-4853.0L3163,-4895.0L3094,-4930.0L3033,-4947.0L2959,-5000.0L2930,-5032.0L2961,-5060.0L2929,-5096.0L2893,-5119.0L2899,-5130.0L2849,-5152.0L2832,-5144.0L2826,-5167.0L2804,-5192.0L2762,-5220.0L2799,-5241.0L2891,-5251.0L2931,-5260.0L3002,-5241.0L3050,-5194.0L3084,-5145.0L3084,-5114.0L3123,-5078.0L3141,-5085.0L3193,-5083.0L3227,-5096.0L3258,-5144.0L3235,-5202.0L3265,-5224.0L3236,-5222.0L3205,-5240.0L3195,-5260.0L3218,-5274.0L3217,-5310.0L3258,-5299.0L3249,-5313.0L3271,-5313.0L3278,-5328.0L3289,-5294.0L3283,-5274.0L3307,-5290.0L3298,-5272.0L3322,-5241.0L3330,-5202.0L3343,-5239.0L3365,-5232.0L3375,-5212.0L3405,-5215.0L3453,-5196.0L3498,-5188.0L3518,-5221.0L3554,-5174.0L3579,-5156.0L3667,-5121.0L3690,-5084.0L3615,-5093.0L3575,-5056.0L3539,-5071.0L3489,-5076.0L3477,-5066.0L3438,-5083.0L3419,-5070.0L3399,-5014.0L3404,-4972.0L3420,-4977.0L3441,-4949.0L3414,-4943.0L3413,-4924.0L3435,-4908.0L3442,-4877.0L3432,-4847.0L3415,-4839.0L3379,-4849.0L3369,-4839.0L3345,-4848.0L3244,-4758.0Z M3143,-5009.0L3205,-4975.0L3293,-5010.0L3244,-5039.0L3143,-5009.0Z"/>
+    <path id="p-naga" class="province" data-name="Naga" data-reg="Region V – Bicol" d="M3143,-5009.0L3244,-5039.0L3293,-5010.0L3205,-4975.0L3143,-5009.0Z"/>
+    <path id="p-batanes" class="province" data-name="Batanes" data-reg="Region II – Cagayan Valley" d="M2330,-9479.0L2323,-9479.0L2318,-9528.0L2350,-9506.0L2330,-9479.0Z M2392,-9533.0L2369,-9533.0L2369,-9559.0L2406,-9612.0L2425,-9623.0L2435,-9600.0L2396,-9568.0L2402,-9549.0L2392,-9533.0Z M2312,-9765.0L2285,-9768.0L2288,-9786.0L2318,-9846.0L2341,-9851.0L2342,-9812.0L2312,-9765.0Z"/>
+    <path id="p-cagayan" class="province" data-name="Cagayan" data-reg="Region II – Cagayan Valley" d="M2066,-8547.0L2049,-8529.0L1977,-8521.0L1951,-8534.0L1952,-8546.0L2040,-8564.0L2066,-8547.0Z M2388,-8624.0L2406,-8589.0L2389,-8582.0L2345,-8534.0L2326,-8504.0L2306,-8512.0L2311,-8535.0L2333,-8557.0L2319,-8572.0L2351,-8627.0L2388,-8624.0Z M1940,-8657.0L1931,-8639.0L1900,-8671.0L1898,-8702.0L1910,-8746.0L1922,-8734.0L1940,-8657.0Z M2065,-8884.0L2106,-8889.0L2112,-8840.0L2124,-8820.0L2094,-8799.0L2035,-8826.0L2000,-8875.0L2029,-8897.0L2065,-8884.0Z M2414,-8999.0L2407,-8968.0L2390,-8953.0L2350,-8984.0L2349,-8997.0L2383,-8999.0L2401,-9011.0L2414,-8999.0Z M1768,-8364.0L1818,-8374.0L1840,-8388.0L1880,-8376.0L1893,-8359.0L1941,-8328.0L2042,-8274.0L2120,-8221.0L2149,-8211.0L2173,-8176.0L2183,-8201.0L2201,-8191.0L2316,-8145.0L2357,-8139.0L2394,-8144.0L2436,-8166.0L2461,-8206.0L2482,-8215.0L2509,-8299.0L2552,-8301.0L2567,-8286.0L2578,-8241.0L2614,-8204.0L2619,-8176.0L2607,-8119.0L2578,-8076.0L2525,-8032.0L2518,-8010.0L2527,-7940.0L2499,-7815.0L2496,-7779.0L2509,-7754.0L2509,-7695.0L2526,-7643.0L2335,-7645.0L2292,-7632.0L2184,-7629.0L2128,-7660.0L2041,-7764.0L2028,-7801.0L2014,-7821.0L1985,-7825.0L1970,-7849.0L1997,-7884.0L2008,-7915.0L2064,-8020.0L2079,-8078.0L2076,-8135.0L2062,-8157.0L1948,-8231.0L1916,-8247.0L1850,-8269.0L1834,-8282.0L1826,-8312.0L1808,-8313.0L1759,-8263.0L1742,-8257.0L1753,-8329.0L1768,-8364.0Z"/>
+    <path id="p-pangasinan" class="province" data-name="Pangasinan" data-reg="Region I – Ilocos" d="M1109,-6777.0L1101,-6776.0L1056,-6826.0L1089,-6857.0L1110,-6831.0L1109,-6777.0Z M1341,-6691.0L1366,-6729.0L1366,-6758.0L1417,-6754.0L1447,-6772.0L1540,-6741.0L1596,-6750.0L1665,-6724.0L1680,-6682.0L1705,-6599.0L1700,-6571.0L1677,-6547.0L1647,-6483.0L1629,-6475.0L1610,-6504.0L1581,-6511.0L1509,-6494.0L1493,-6529.0L1467,-6460.0L1420,-6426.0L1358,-6452.0L1333,-6429.0L1316,-6393.0L1260,-6359.0L1251,-6385.0L1218,-6435.0L1191,-6499.0L1156,-6502.0L1107,-6522.0L1066,-6488.0L1029,-6489.0L1036,-6523.0L1023,-6565.0L1008,-6588.0L991,-6593.0L953,-6566.0L944,-6586.0L946,-6663.0L960,-6716.0L946,-6760.0L965,-6840.0L985,-6870.0L1037,-6882.0L1053,-6878.0L1058,-6854.0L1042,-6791.0L1079,-6777.0L1115,-6743.0L1137,-6742.0L1164,-6723.0L1172,-6667.0L1224,-6642.0L1271,-6654.0L1295,-6607.0L1324,-6614.0L1365,-6646.0L1341,-6691.0Z"/>
+    <path id="p-batangas" class="province" data-name="Batangas" data-reg="Region IV-A – CALABARZON" d="M1795,-4981.0L1800,-4959.0L1786,-4958.0L1767,-4975.0L1795,-4981.0Z M1688,-5022.0L1657,-5026.0L1638,-5051.0L1691,-5041.0L1688,-5022.0Z M1914,-5243.0L1950,-5200.0L1999,-5162.0L2038,-5146.0L2024,-5131.0L2025,-5067.0L2044,-5063.0L2021,-5038.0L1985,-5045.0L1922,-4997.0L1843,-5027.0L1791,-5014.0L1761,-5029.0L1774,-5083.0L1765,-5108.0L1727,-5123.0L1675,-5064.0L1661,-5081.0L1693,-5125.0L1680,-5139.0L1683,-5191.0L1671,-5208.0L1574,-5227.0L1547,-5223.0L1544,-5202.0L1558,-5175.0L1518,-5178.0L1512,-5168.0L1519,-5121.0L1496,-5145.0L1490,-5226.0L1479,-5252.0L1501,-5267.0L1490,-5284.0L1492,-5342.0L1466,-5362.0L1478,-5378.0L1478,-5420.0L1513,-5417.0L1537,-5401.0L1536,-5386.0L1556,-5365.0L1620,-5345.0L1655,-5322.0L1698,-5329.0L1757,-5355.0L1763,-5367.0L1827,-5370.0L1860,-5362.0L1876,-5344.0L1887,-5273.0L1914,-5258.0L1914,-5243.0Z"/>
+    <path id="p-mindoro-occidental" class="province" data-name="Mindoro Occidental" data-reg="Region IV-B – MIMAROPA" d="M1815,-4034.0L1791,-4044.0L1758,-4096.0L1771,-4114.0L1790,-4106.0L1815,-4034.0Z M1152,-5186.0L1191,-5165.0L1239,-5144.0L1261,-5109.0L1248,-5090.0L1268,-5075.0L1256,-5056.0L1216,-5098.0L1187,-5107.0L1144,-5138.0L1136,-5170.0L1152,-5186.0Z M1898,-4618.0L1895,-4074.0L1883,-4070.0L1859,-4089.0L1806,-4095.0L1789,-4144.0L1720,-4211.0L1692,-4259.0L1678,-4272.0L1686,-4315.0L1676,-4354.0L1638,-4408.0L1601,-4418.0L1591,-4469.0L1580,-4487.0L1589,-4505.0L1588,-4543.0L1576,-4602.0L1536,-4662.0L1501,-4724.0L1470,-4735.0L1447,-4755.0L1417,-4756.0L1425,-4769.0L1395,-4804.0L1382,-4873.0L1369,-4889.0L1343,-4881.0L1322,-4860.0L1303,-4862.0L1282,-4901.0L1292,-4930.0L1315,-4951.0L1346,-4956.0L1391,-4945.0L1452,-4946.0L1485,-4934.0L1545,-4930.0L1565,-4915.0L1668,-4938.0L1672,-4901.0L1666,-4870.0L1591,-4771.0L1864,-4650.0L1898,-4618.0Z"/>
+    <path id="p-quezon" class="province" data-name="Quezon" data-reg="Region IV-A – CALABARZON" d="M2643,-5722.0L2607,-5724.0L2605,-5734.0L2658,-5757.0L2672,-5738.0L2643,-5722.0Z M2489,-5829.0L2532,-5828.0L2533,-5800.0L2552,-5801.0L2566,-5780.0L2556,-5763.0L2505,-5801.0L2478,-5807.0L2467,-5828.0L2489,-5829.0Z M2158,-5206.0L2122,-5265.0L2067,-5239.0L2100,-5186.0L2064,-5172.0L2038,-5146.0L1999,-5162.0L1950,-5200.0L1914,-5243.0L1966,-5269.0L2014,-5302.0L2071,-5318.0L2102,-5372.0L2131,-5415.0L2129,-5478.0L2085,-5584.0L2045,-5652.0L1989,-5741.0L1971,-5801.0L1969,-5865.0L1966,-5939.0L1962,-5962.0L1980,-5959.0L1979,-5977.0L2011,-6026.0L2006,-6047.0L2015,-6075.0L2039,-6079.0L2062,-6062.0L2079,-5981.0L2112,-5932.0L2126,-5885.0L2147,-5853.0L2134,-5844.0L2170,-5799.0L2211,-5767.0L2219,-5750.0L2156,-5739.0L2142,-5720.0L2144,-5678.0L2167,-5598.0L2177,-5547.0L2224,-5487.0L2221,-5455.0L2239,-5432.0L2221,-5398.0L2253,-5351.0L2297,-5319.0L2355,-5263.0L2454,-5224.0L2548,-5203.0L2542,-5233.0L2516,-5258.0L2529,-5262.0L2588,-5245.0L2587,-5281.0L2562,-5311.0L2519,-5340.0L2525,-5389.0L2557,-5397.0L2562,-5433.0L2571,-5418.0L2567,-5392.0L2576,-5354.0L2589,-5360.0L2600,-5330.0L2613,-5317.0L2643,-5332.0L2682,-5364.0L2711,-5366.0L2931,-5260.0L2891,-5251.0L2799,-5241.0L2762,-5220.0L2748,-5239.0L2734,-5221.0L2697,-5223.0L2669,-5239.0L2672,-5220.0L2692,-5202.0L2730,-5144.0L2732,-5088.0L2714,-5078.0L2722,-5031.0L2756,-4993.0L2803,-4965.0L2810,-4943.0L2767,-4972.0L2788,-4935.0L2817,-4901.0L2837,-4848.0L2848,-4747.0L2808,-4720.0L2781,-4710.0L2726,-4754.0L2736,-4802.0L2724,-4841.0L2659,-4927.0L2654,-4945.0L2619,-4971.0L2605,-4992.0L2565,-4991.0L2565,-5001.0L2531,-5007.0L2473,-5099.0L2435,-5135.0L2431,-5122.0L2386,-5140.0L2363,-5162.0L2283,-5199.0L2256,-5232.0L2216,-5246.0L2193,-5217.0L2158,-5206.0Z M2361,-5422.0L2465,-5335.0L2510,-5301.0L2512,-5270.0L2500,-5270.0L2374,-5362.0L2347,-5406.0L2361,-5422.0Z M2415,-5760.0L2401,-5718.0L2359,-5696.0L2339,-5717.0L2344,-5751.0L2356,-5753.0L2346,-5810.0L2320,-5836.0L2322,-5859.0L2300,-5894.0L2281,-5902.0L2286,-5946.0L2298,-5968.0L2330,-5954.0L2341,-5971.0L2379,-5969.0L2403,-5963.0L2403,-5944.0L2431,-5937.0L2434,-5912.0L2412,-5933.0L2396,-5924.0L2407,-5892.0L2380,-5874.0L2384,-5829.0L2397,-5831.0L2409,-5803.0L2415,-5760.0Z"/>
+    <path id="p-eastern-samar" class="province" data-name="Eastern Samar" data-reg="Region VIII – Eastern Visayas" d="M4884,-3086.0L4916,-3086.0L4931,-3072.0L4890,-3059.0L4833,-3093.0L4835,-3128.0L4864,-3131.0L4884,-3086.0Z M4478,-4140.0L4496,-4174.0L4524,-4173.0L4552,-4119.0L4580,-4132.0L4607,-4142.0L4603,-4123.0L4630,-4133.0L4626,-4121.0L4657,-4119.0L4702,-4097.0L4721,-4072.0L4727,-4046.0L4689,-4042.0L4708,-4028.0L4681,-4020.0L4675,-4002.0L4699,-3991.0L4720,-3961.0L4697,-3943.0L4672,-3905.0L4668,-3866.0L4676,-3822.0L4699,-3795.0L4694,-3779.0L4677,-3786.0L4672,-3762.0L4693,-3767.0L4706,-3729.0L4690,-3707.0L4687,-3663.0L4700,-3658.0L4708,-3620.0L4723,-3599.0L4721,-3568.0L4739,-3568.0L4746,-3544.0L4799,-3507.0L4792,-3470.0L4752,-3439.0L4745,-3401.0L4756,-3388.0L4795,-3393.0L4794,-3418.0L4846,-3379.0L4861,-3338.0L4895,-3295.0L4882,-3275.0L4855,-3293.0L4846,-3338.0L4809,-3359.0L4775,-3338.0L4759,-3361.0L4734,-3356.0L4727,-3319.0L4697,-3344.0L4669,-3323.0L4641,-3328.0L4587,-3358.0L4560,-3348.0L4537,-3320.0L4566,-3430.0L4598,-3488.0L4607,-3536.0L4600,-3559.0L4566,-3615.0L4561,-3633.0L4541,-3880.0L4522,-3928.0L4508,-3939.0L4454,-3926.0L4443,-3985.0L4443,-4015.0L4465,-4057.0L4478,-4140.0Z"/>
+    <path id="p-leyte" class="province" data-name="Leyte" data-reg="Region VIII – Eastern Visayas" d="M3967,-3004.0L3915,-2978.0L3904,-2987.0L3928,-3047.0L3942,-3060.0L3967,-3046.0L3974,-3013.0L3967,-3004.0Z M4053,-3013.0L4022,-3006.0L3987,-3017.0L3986,-3041.0L4004,-3061.0L4050,-3048.0L4061,-3030.0L4053,-3013.0Z M4403,-3389.0L4395,-3374.0L4414,-3263.0L4413,-3235.0L4387,-3152.0L4383,-3120.0L4397,-3083.0L4459,-3057.0L4466,-3032.0L4491,-3003.0L4460,-2987.0L4433,-2950.0L4405,-2938.0L4356,-2934.0L4329,-2924.0L4303,-2876.0L4318,-2786.0L4317,-2769.0L4289,-2760.0L4278,-2741.0L4226,-2708.0L4244,-2787.0L4238,-2820.0L4207,-2849.0L4210,-2915.0L4225,-2941.0L4228,-2985.0L4245,-3026.0L4247,-3070.0L4232,-3135.0L4201,-3166.0L4174,-3214.0L4127,-3256.0L4159,-3298.0L4115,-3359.0L4085,-3329.0L4044,-3327.0L4038,-3298.0L4079,-3243.0L4088,-3208.0L4065,-3172.0L4051,-3170.0L4011,-3189.0L4005,-3210.0L3981,-3206.0L3990,-3267.0L3972,-3298.0L3991,-3340.0L3982,-3395.0L3982,-3457.0L3970,-3455.0L3945,-3486.0L3959,-3505.0L3920,-3567.0L3912,-3618.0L3931,-3627.0L4007,-3554.0L4032,-3512.0L4038,-3554.0L4075,-3529.0L4091,-3487.0L4131,-3459.0L4163,-3458.0L4207,-3475.0L4240,-3504.0L4274,-3546.0L4329,-3538.0L4366,-3512.0L4360,-3480.0L4323,-3473.0L4332,-3414.0L4367,-3385.0L4403,-3389.0Z"/>
+    <path id="p-samar" class="province" data-name="Samar" data-reg="Region VIII – Eastern Visayas" d="M4280,-3661.0L4273,-3624.0L4264,-3615.0L4233,-3667.0L4203,-3691.0L4191,-3720.0L4198,-3739.0L4232,-3717.0L4252,-3695.0L4262,-3667.0L4280,-3661.0Z M3830,-3951.0L3809,-3960.0L3821,-3975.0L3863,-3974.0L3830,-3951.0Z M4478,-4140.0L4465,-4057.0L4443,-4015.0L4443,-3985.0L4454,-3926.0L4508,-3939.0L4522,-3928.0L4541,-3880.0L4561,-3633.0L4566,-3615.0L4600,-3559.0L4607,-3536.0L4598,-3488.0L4566,-3430.0L4537,-3320.0L4519,-3345.0L4509,-3409.0L4491,-3435.0L4465,-3446.0L4404,-3445.0L4377,-3450.0L4371,-3469.0L4378,-3538.0L4344,-3560.0L4317,-3592.0L4307,-3571.0L4273,-3579.0L4262,-3597.0L4289,-3620.0L4309,-3624.0L4303,-3638.0L4341,-3638.0L4375,-3675.0L4369,-3706.0L4397,-3745.0L4410,-3752.0L4377,-3776.0L4327,-3753.0L4303,-3766.0L4264,-3823.0L4238,-3831.0L4247,-3859.0L4227,-3858.0L4201,-3877.0L4194,-3911.0L4161,-3946.0L4109,-3962.0L4088,-3959.0L4038,-3991.0L3981,-4055.0L3956,-4119.0L3994,-4121.0L4033,-4147.0L4169,-4080.0L4210,-4099.0L4254,-4078.0L4270,-4079.0L4306,-4100.0L4373,-4097.0L4403,-4105.0L4418,-4121.0L4460,-4128.0L4478,-4140.0Z"/>
+    <path id="p-northern-samar" class="province" data-name="Northern Samar" data-reg="Region VIII – Eastern Visayas" d="M3831,-4197.0L3823,-4191.0L3802,-4218.0L3799,-4240.0L3817,-4230.0L3831,-4197.0Z M4580,-4132.0L4552,-4119.0L4524,-4173.0L4496,-4174.0L4478,-4140.0L4460,-4128.0L4418,-4121.0L4403,-4105.0L4373,-4097.0L4306,-4100.0L4270,-4079.0L4254,-4078.0L4210,-4099.0L4169,-4080.0L4033,-4147.0L3994,-4121.0L3956,-4119.0L3937,-4183.0L3893,-4282.0L3904,-4314.0L3947,-4290.0L3980,-4299.0L4011,-4286.0L4159,-4272.0L4283,-4283.0L4301,-4299.0L4289,-4324.0L4323,-4301.0L4353,-4314.0L4357,-4304.0L4411,-4283.0L4442,-4317.0L4480,-4316.0L4550,-4264.0L4602,-4197.0L4578,-4175.0L4589,-4146.0L4580,-4132.0Z"/>
+    <path id="p-camiguin" class="province" data-name="Camiguin" data-reg="Region X – Northern Mindanao" d="M4239,-1966.0L4167,-1996.0L4143,-2034.0L4150,-2059.0L4191,-2080.0L4216,-2073.0L4247,-2042.0L4258,-2018.0L4253,-1977.0L4239,-1966.0Z"/>
+    <path id="p-surigao-del-norte" class="province" data-name="Surigao del Norte" data-reg="Region XIII – Caraga" d="M5023,-2425.0L5031,-2424.0L5033,-2384.0L5051,-2372.0L5037,-2332.0L5036,-2304.0L5000,-2313.0L4994,-2333.0L5008,-2363.0L5001,-2413.0L5023,-2425.0Z M5035,-2514.0L5078,-2589.0L5078,-2613.0L5101,-2627.0L5132,-2561.0L5140,-2524.0L5122,-2494.0L5144,-2490.0L5159,-2476.0L5168,-2448.0L5129,-2428.0L5077,-2439.0L5082,-2425.0L5026,-2489.0L5058,-2498.0L5035,-2514.0Z M4836,-2559.0L4862,-2528.0L4858,-2508.0L4824,-2513.0L4820,-2547.0L4789,-2565.0L4793,-2583.0L4770,-2594.0L4779,-2625.0L4793,-2627.0L4779,-2647.0L4754,-2643.0L4738,-2628.0L4712,-2656.0L4710,-2684.0L4726,-2700.0L4723,-2726.0L4742,-2721.0L4741,-2758.0L4728,-2800.0L4752,-2805.0L4750,-2836.0L4776,-2832.0L4789,-2843.0L4795,-2885.0L4817,-2894.0L4836,-2856.0L4835,-2832.0L4819,-2763.0L4805,-2754.0L4826,-2732.0L4816,-2713.0L4837,-2703.0L4835,-2664.0L4852,-2634.0L4836,-2602.0L4843,-2570.0L4836,-2559.0Z M4694,-2214.0L4649,-2372.0L4654,-2407.0L4689,-2468.0L4721,-2439.0L4776,-2422.0L4773,-2406.0L4797,-2339.0L4831,-2319.0L4845,-2322.0L4859,-2303.0L4886,-2303.0L4911,-2283.0L4950,-2278.0L4985,-2251.0L5007,-2248.0L5007,-2248.0L4871,-2127.0L4881,-2158.0L4869,-2180.0L4836,-2210.0L4773,-2226.0L4729,-2224.0L4694,-2214.0Z"/>
+    <path id="p-davao-del-sur" class="province" data-name="Davao del Sur" data-reg="Region XI – Davao" d="M4681,517.0L4641,525.0L4621,511.0L4650,482.0L4678,485.0L4681,517.0Z M4512,-278.0L4523,-345.0L4497,-393.0L4494,-425.0L4505,-467.0L4573,-541.0L4573,-573.0L4596,-583.0L4734,-583.0L4720,-558.0L4715,-514.0L4678,-471.0L4654,-416.0L4647,-353.0L4660,-302.0L4685,-295.0L4684,-314.0L4706,-300.0L4753,-245.0L4779,-248.0L4795,-224.0L4798,-188.0L4827,-132.0L4837,-89.0L4870,-2.0L4872,24.0L4860,58.0L4865,72.0L4844,132.0L4795,192.0L4731,283.0L4690,356.0L4657,386.0L4602,380.0L4649,346.0L4706,214.0L4717,210.0L4717,157.0L4748,65.0L4748,31.0L4735,13.0L4738,-46.0L4706,-101.0L4681,-113.0L4587,-114.0L4561,-123.0L4507,-165.0L4489,-192.0L4505,-228.0L4512,-278.0L4512,-278.0L4512,-278.0Z"/>
+    <path id="p-isabela" class="province" data-name="Isabela" data-reg="Region IX – Zamboanga Peninsula" d="M2369,-387.0L2341,-376.0L2349,-399.0L2372,-404.0L2369,-387.0Z M2327,-351.0L2380,-375.0L2414,-394.0L2419,-349.0L2447,-291.0L2357,-286.0L2347,-326.0L2327,-351.0Z"/>
+    <path id="p-lapu-lapu" class="province" data-name="Lapu-Lapu" data-reg="Region VII – Central Visayas" d="M3745,-2799.0L3700,-2753.0L3672,-2752.0L3681,-2787.0L3711,-2799.0L3745,-2799.0Z"/>
+    <path id="p-iloilo" class="province" data-name="Iloilo" data-reg="Region VI – Western Visayas" d="M2701,-3042.0L2590,-3024.0L2560,-3009.0L2538,-3012.0L2495,-2979.0L2455,-2963.0L2410,-2891.0L2392,-2912.0L2411,-3009.0L2438,-3044.0L2486,-3075.0L2515,-3111.0L2550,-3187.0L2573,-3205.0L2581,-3237.0L2600,-3252.0L2608,-3287.0L2584,-3324.0L2548,-3357.0L2580,-3387.0L2616,-3397.0L2656,-3379.0L2692,-3381.0L2724,-3375.0L2754,-3388.0L2761,-3407.0L2778,-3410.0L2833,-3392.0L2908,-3396.0L2913,-3378.0L2937,-3387.0L2960,-3381.0L2976,-3395.0L2977,-3433.0L3023,-3451.0L3019,-3487.0L3045,-3494.0L3079,-3526.0L3080,-3554.0L3108,-3606.0L3130,-3619.0L3160,-3653.0L3160,-3612.0L3136,-3597.0L3145,-3573.0L3167,-3565.0L3155,-3535.0L3158,-3507.0L3135,-3483.0L3127,-3430.0L3139,-3374.0L3123,-3353.0L3079,-3361.0L3062,-3313.0L3033,-3298.0L3019,-3275.0L3011,-3294.0L2995,-3269.0L2979,-3275.0L2945,-3263.0L2906,-3222.0L2918,-3168.0L2893,-3124.0L2872,-3110.0L2844,-3118.0L2796,-3091.0L2742,-3117.0L2713,-3098.0L2701,-3042.0Z"/>
+    <path id="p-angeles" class="province" data-name="Angeles" data-reg="Region III – Central Luzon" d="M1510,-6022.0L1481,-6014.0L1456,-6035.0L1429,-6042.0L1467,-6063.0L1511,-6064.0L1510,-6022.0Z"/>
+    <path id="p-baguio" class="province" data-name="Baguio" data-reg="CAR" d="M1525,-6906.0L1530,-6853.0L1486,-6857.0L1473,-6908.0L1525,-6906.0Z"/>
+    <path id="p-laguna" class="province" data-name="Laguna" data-reg="Region IV-A – CALABARZON" d="M2045,-5652.0L2085,-5584.0L2129,-5478.0L2131,-5415.0L2102,-5372.0L2071,-5318.0L2014,-5302.0L1966,-5269.0L1914,-5243.0L1914,-5258.0L1887,-5273.0L1876,-5344.0L1860,-5362.0L1827,-5370.0L1763,-5367.0L1760,-5386.0L1780,-5431.0L1773,-5443.0L1791,-5482.0L1752,-5490.0L1753,-5511.0L1787,-5528.0L1837,-5530.0L1831,-5574.0L1826,-5622.0L1856,-5607.0L1878,-5551.0L1891,-5484.0L1901,-5471.0L1915,-5503.0L1899,-5533.0L1897,-5583.0L1905,-5606.0L1925,-5610.0L1962,-5566.0L1962,-5530.0L1943,-5483.0L1945,-5464.0L1997,-5500.0L1979,-5581.0L1996,-5626.0L2045,-5652.0L2045,-5652.0Z"/>
+    <path id="p-rizal" class="province" data-name="Rizal" data-reg="Region IV-A – CALABARZON" d="M2045,-5652.0L1996,-5626.0L1979,-5581.0L1997,-5500.0L1945,-5464.0L1943,-5483.0L1962,-5530.0L1962,-5566.0L1925,-5610.0L1905,-5606.0L1897,-5583.0L1899,-5533.0L1915,-5503.0L1901,-5471.0L1891,-5484.0L1878,-5551.0L1856,-5607.0L1826,-5622.0L1821,-5638.0L1822,-5678.0L1841,-5689.0L1843,-5710.0L1827,-5715.0L1840,-5752.0L1846,-5779.0L1880,-5824.0L1921,-5838.0L1947,-5866.0L1969,-5865.0L1971,-5801.0L1989,-5741.0L2045,-5652.0Z"/>
+    <path id="p-lanao-del-norte" class="province" data-name="Lanao del Norte" data-reg="Region X – Northern Mindanao" d="M3628,-1040.0L3583,-1045.0L3536,-1102.0L3523,-1111.0L3463,-1127.0L3516,-1166.0L3523,-1178.0L3512,-1218.0L3547,-1239.0L3636,-1310.0L3658,-1315.0L3699,-1352.0L3744,-1367.0L3824,-1367.0L3875,-1383.0L3896,-1373.0L3920,-1385.0L3920,-1385.0L3915,-1363.0L3919,-1314.0L3891,-1263.0L3854,-1261.0L3829,-1251.0L3806,-1194.0L3786,-1176.0L3760,-1175.0L3753,-1117.0L3725,-1083.0L3716,-1039.0L3691,-1041.0L3633,-1064.0L3628,-1040.0Z"/>
+    <path id="p-iligan" class="province" data-name="Iligan" data-reg="Region X – Northern Mindanao" d="M3896,-1373.0L3875,-1383.0L3904,-1428.0L3895,-1457.0L3972,-1492.0L4012,-1475.0L4069,-1435.0L4081,-1412.0L4103,-1400.0L4103,-1400.0L4104,-1365.0L4095,-1320.0L4103,-1300.0L4142,-1246.0L4141,-1246.0L4114,-1259.0L4039,-1326.0L3985,-1354.0L3959,-1391.0L3920,-1385.0L3920,-1385.0L3896,-1373.0Z"/>
+    <path id="p-lanao-del-sur" class="province" data-name="Lanao del Sur" data-reg="BARMM" d="M3833,-858.0L3817,-878.0L3785,-945.0L3765,-973.0L3694,-1020.0L3661,-1037.0L3628,-1040.0L3633,-1064.0L3691,-1041.0L3716,-1039.0L3725,-1083.0L3753,-1117.0L3760,-1175.0L3786,-1176.0L3806,-1194.0L3829,-1251.0L3854,-1261.0L3891,-1263.0L3919,-1314.0L3915,-1363.0L3920,-1385.0L3920,-1385.0L3959,-1391.0L3985,-1354.0L4039,-1326.0L4114,-1259.0L4141,-1246.0L4142,-1246.0L4142,-1245.0L4161,-1224.0L4170,-1214.0L4167,-1199.0L4137,-1196.0L4125,-1180.0L4148,-1133.0L4163,-1127.0L4215,-1054.0L4237,-1003.0L4262,-980.0L4189,-992.0L4117,-989.0L4084,-1025.0L4060,-1032.0L4032,-1018.0L4032,-1019.0L4032,-1019.0L3977,-985.0L3833,-858.0Z"/>
+    <path id="p-cotabato" class="province" data-name="Cotabato" data-reg="Region XII – SOCCSKSARGEN" d="M4060,-1032.0L4084,-1025.0L4117,-989.0L4189,-992.0L4262,-980.0L4269,-954.0L4294,-929.0L4309,-864.0L4324,-845.0L4341,-857.0L4380,-833.0L4431,-856.0L4442,-887.0L4484,-906.0L4526,-952.0L4545,-964.0L4569,-960.0L4576,-930.0L4555,-860.0L4550,-814.0L4559,-731.0L4541,-694.0L4583,-662.0L4595,-643.0L4596,-583.0L4573,-573.0L4573,-541.0L4505,-467.0L4494,-425.0L4493,-425.0L4324,-388.0L4324,-388.0L4289,-408.0L4284,-414.0L4281,-553.0L4255,-552.0L4246,-570.0L4257,-620.0L4245,-646.0L4206,-705.0L4190,-688.0L4206,-653.0L4169,-622.0L4189,-603.0L4205,-567.0L4169,-536.0L4112,-558.0L4098,-569.0L4097,-592.0L4047,-610.0L4022,-640.0L4046,-696.0L4050,-722.0L4013,-727.0L3975,-684.0L3940,-686.0L3945,-704.0L4051,-860.0L4027,-909.0L4022,-931.0L4032,-1018.0L4032,-1019.0L4032,-1019.0L4060,-1032.0Z"/>
+    <path id="p-maguindanao" class="province" data-name="Maguindanao" data-reg="BARMM" d="M4032,-1019.0L4032,-1018.0L4022,-931.0L4027,-909.0L4051,-860.0L3945,-704.0L3940,-686.0L3975,-684.0L4013,-727.0L4050,-722.0L4046,-696.0L4022,-640.0L4047,-610.0L4097,-592.0L4098,-569.0L4112,-558.0L4169,-536.0L4205,-567.0L4189,-603.0L4169,-622.0L4206,-653.0L4190,-688.0L4206,-705.0L4245,-646.0L4257,-620.0L4246,-570.0L4255,-552.0L4281,-553.0L4284,-414.0L4324,-388.0L4311,-358.0L4332,-328.0L4283,-330.0L4245,-357.0L4205,-417.0L4188,-421.0L4199,-466.0L4151,-465.0L4153,-476.0L4102,-455.0L4109,-430.0L4097,-404.0L4039,-385.0L3901,-386.0L3871,-409.0L3747,-406.0L3747,-434.0L3720,-425.0L3699,-448.0L3704,-474.0L3705,-545.0L3714,-579.0L3742,-646.0L3756,-660.0L3808,-688.0L3845,-721.0L3875,-691.0L3910,-680.0L3926,-718.0L3890,-780.0L3868,-784.0L3873,-814.0L3887,-840.0L3847,-844.0L3833,-858.0L3977,-985.0L3977,-985.0L4032,-1019.0L4032,-1019.0Z"/>
+    <path id="p-sultan-kudarat" class="province" data-name="Sultan Kudarat" data-reg="Region XII – SOCCSKSARGEN" d="M4324,-388.0L4493,-425.0L4494,-425.0L4497,-393.0L4523,-345.0L4512,-278.0L4512,-278.0L4512,-278.0L4401,-282.0L4344,-276.0L4297,-256.0L4280,-259.0L4244,-311.0L4227,-326.0L4174,-295.0L4148,-328.0L4130,-241.0L4150,-196.0L4145,-167.0L4159,-121.0L4150,-93.0L3890,-94.0L3931,-46.0L3980,-7.0L3980,-7.0L3980,-7.0L3976,-0.0L3972,13.0L3888,-23.0L3858,-46.0L3834,-95.0L3789,-142.0L3760,-191.0L3745,-261.0L3759,-273.0L3757,-347.0L3745,-389.0L3747,-406.0L3871,-409.0L3901,-386.0L4039,-385.0L4097,-404.0L4109,-430.0L4102,-455.0L4153,-476.0L4151,-465.0L4199,-466.0L4188,-421.0L4205,-417.0L4245,-357.0L4283,-330.0L4332,-328.0L4311,-358.0L4324,-388.0L4324,-388.0Z M4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0Z"/>
+    <path id="p-south-cotabato" class="province" data-name="South Cotabato" data-reg="Region XII – SOCCSKSARGEN" d="M3931,-46.0L3890,-94.0L4150,-93.0L4159,-121.0L4145,-167.0L4150,-196.0L4130,-241.0L4148,-328.0L4174,-295.0L4227,-326.0L4244,-311.0L4280,-259.0L4297,-256.0L4344,-276.0L4401,-282.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4512,-278.0L4505,-228.0L4489,-192.0L4458,-161.0L4445,-129.0L4487,-115.0L4463,-68.0L4475,-28.0L4419,-31.0L4419,58.0L4428,97.0L4395,100.0L4280,98.0L4254,93.0L4198,64.0L4148,44.0L4050,-17.0L3989,-41.0L3980,-7.0L3980,-7.0L3980,-7.0L3931,-46.0Z"/>
+    <path id="p-sarangani" class="province" data-name="Sarangani" data-reg="Region XII – SOCCSKSARGEN" d="M3980,-7.0L3980,-7.0L3989,-41.0L4050,-17.0L4148,44.0L4198,64.0L4254,93.0L4280,98.0L4395,100.0L4428,97.0L4431,129.0L4471,132.0L4455,178.0L4442,193.0L4397,187.0L4354,192.0L4286,160.0L4239,143.0L4199,137.0L4155,111.0L4124,102.0L4100,82.0L4007,28.0L3972,13.0L3973,7.0L3976,-0.0L3980,-7.0L3980,-7.0Z M4556,37.0L4556,-26.0L4575,-58.0L4577,-79.0L4561,-89.0L4487,-115.0L4445,-129.0L4458,-161.0L4489,-192.0L4507,-165.0L4561,-123.0L4587,-114.0L4681,-113.0L4706,-101.0L4738,-46.0L4735,13.0L4748,31.0L4748,65.0L4717,157.0L4717,210.0L4706,214.0L4649,346.0L4602,380.0L4598,321.0L4583,290.0L4556,283.0L4544,257.0L4517,236.0L4531,194.0L4582,114.0L4584,87.0L4570,43.0L4556,37.0Z"/>
+    <path id="p-agusan-del-norte" class="province" data-name="Agusan del Norte" data-reg="Region XIII – Caraga" d="M4522,-1969.0L4531,-1973.0L4566,-1925.0L4594,-1910.0L4681,-1902.0L4695,-1832.0L4730,-1779.0L4837,-1782.0L4859,-1733.0L4830,-1706.0L4744,-1714.0L4714,-1698.0L4691,-1660.0L4658,-1638.0L4602,-1639.0L4599,-1696.0L4582,-1738.0L4581,-1768.0L4602,-1837.0L4542,-1906.0L4524,-1936.0L4522,-1969.0Z M4731,-1926.0L4746,-1972.0L4747,-2042.0L4733,-2076.0L4732,-2100.0L4695,-2189.0L4694,-2214.0L4729,-2224.0L4773,-2226.0L4836,-2210.0L4869,-2180.0L4881,-2158.0L4871,-2127.0L4876,-2085.0L4897,-2059.0L4897,-2059.0L4897,-2059.0L4897,-2059.0L4860,-1926.0L4731,-1926.0Z"/>
+    <path id="p-surigao-del-sur" class="province" data-name="Surigao del Sur" data-reg="Region XIII – Caraga" d="M4876,-2085.0L4871,-2127.0L5007,-2248.0L5007,-2248.0L5024,-2213.0L4998,-2204.0L4996,-2183.0L5029,-2176.0L5047,-2185.0L5049,-2136.0L5060,-2115.0L5103,-2079.0L5148,-2094.0L5172,-2118.0L5199,-2124.0L5177,-2034.0L5173,-1981.0L5198,-1968.0L5214,-1938.0L5263,-1890.0L5285,-1821.0L5255,-1764.0L5216,-1741.0L5225,-1708.0L5187,-1709.0L5148,-1686.0L5130,-1654.0L5162,-1601.0L5217,-1602.0L5203,-1620.0L5295,-1607.0L5304,-1612.0L5325,-1585.0L5332,-1561.0L5307,-1560.0L5311,-1514.0L5280,-1481.0L5317,-1445.0L5284,-1392.0L5300,-1373.0L5368,-1403.0L5363,-1326.0L5350,-1252.0L5362,-1235.0L5324,-1203.0L5316,-1180.0L5269,-1207.0L5254,-1245.0L5254,-1245.0L5245,-1283.0L5204,-1350.0L5195,-1391.0L5208,-1461.0L5194,-1488.0L5124,-1497.0L5103,-1509.0L5094,-1539.0L5055,-1603.0L5050,-1628.0L5077,-1679.0L5071,-1708.0L5019,-1760.0L5022,-1784.0L5001,-1799.0L4970,-1836.0L4953,-1884.0L4922,-1894.0L4926,-1917.0L4921,-1991.0L4897,-2059.0L4897,-2059.0L4897,-2059.0L4876,-2085.0Z"/>
+    <path id="p-agusan-del-sur" class="province" data-name="Agusan del Sur" data-reg="Region XIII – Caraga" d="M4897,-2059.0L4897,-2059.0L4897,-2059.0L4921,-1991.0L4926,-1917.0L4922,-1894.0L4953,-1884.0L4970,-1836.0L5001,-1799.0L5022,-1784.0L5019,-1760.0L5071,-1708.0L5077,-1679.0L5050,-1628.0L5055,-1603.0L5094,-1539.0L5103,-1509.0L5124,-1497.0L5194,-1488.0L5208,-1461.0L5195,-1391.0L5204,-1350.0L5245,-1283.0L5254,-1245.0L5254,-1245.0L5181,-1243.0L5181,-1243.0L4842,-1242.0L4842,-1242.0L4640,-1241.0L4640,-1242.0L4634,-1261.0L4630,-1326.0L4605,-1386.0L4610,-1422.0L4599,-1460.0L4598,-1507.0L4591,-1539.0L4602,-1639.0L4658,-1638.0L4691,-1660.0L4714,-1698.0L4744,-1714.0L4830,-1706.0L4859,-1733.0L4837,-1782.0L4829,-1833.0L4860,-1926.0L4897,-2059.0L4897,-2059.0Z"/>
+    <path id="p-davao-oriental" class="province" data-name="Davao Oriental" data-reg="Region XI – Davao" d="M5254,-1245.0L5254,-1245.0L5269,-1207.0L5316,-1180.0L5332,-1136.0L5365,-1112.0L5387,-1078.0L5403,-1069.0L5451,-1060.0L5442,-998.0L5458,-949.0L5470,-890.0L5441,-863.0L5457,-839.0L5444,-779.0L5472,-763.0L5473,-750.0L5452,-712.0L5432,-700.0L5414,-656.0L5383,-621.0L5376,-578.0L5344,-563.0L5298,-576.0L5271,-541.0L5266,-504.0L5295,-474.0L5292,-432.0L5272,-440.0L5244,-501.0L5207,-531.0L5193,-525.0L5193,-497.0L5177,-496.0L5204,-445.0L5235,-418.0L5219,-317.0L5218,-218.0L5207,-165.0L5205,-104.0L5191,-96.0L5184,-147.0L5161,-162.0L5158,-192.0L5129,-248.0L5120,-332.0L5129,-390.0L5117,-469.0L5079,-485.0L5048,-533.0L5054,-578.0L5033,-606.0L5065,-626.0L5114,-668.0L5225,-737.0L5259,-776.0L5254,-796.0L5211,-862.0L5208,-880.0L5225,-950.0L5222,-975.0L5178,-1145.0L5173,-1196.0L5181,-1243.0L5181,-1243.0L5254,-1245.0Z"/>
+    <path id="p-davao-del-norte" class="province" data-name="Davao del Norte" data-reg="Region XI – Davao" d="M4842,-1242.0L4842,-1242.0L4842,-1242.0L4861,-1106.0L4912,-1042.0L4912,-1014.0L4938,-1032.0L4957,-1066.0L5006,-1129.0L5022,-1082.0L4997,-1035.0L5017,-995.0L5005,-938.0L4962,-928.0L4983,-900.0L4950,-879.0L4955,-857.0L4948,-811.0L4932,-809.0L4845,-750.0L4837,-757.0L4809,-733.0L4742,-731.0L4725,-745.0L4727,-969.0L4584,-971.0L4594,-1027.0L4659,-1019.0L4682,-1047.0L4688,-1095.0L4665,-1186.0L4640,-1241.0L4640,-1242.0L4842,-1242.0Z M4921,-649.0L4917,-563.0L4925,-533.0L4919,-518.0L4914,-502.0L4898,-518.0L4874,-608.0L4844,-620.0L4859,-658.0L4866,-702.0L4916,-664.0L4921,-649.0Z"/>
+    <path id="p-bukidnon" class="province" data-name="Bukidnon" data-reg="Region X – Northern Mindanao" d="M4104,-1365.0L4103,-1400.0L4103,-1400.0L4115,-1429.0L4134,-1518.0L4244,-1512.0L4273,-1531.0L4271,-1587.0L4305,-1631.0L4340,-1642.0L4602,-1639.0L4591,-1539.0L4598,-1507.0L4599,-1460.0L4610,-1422.0L4605,-1386.0L4630,-1326.0L4634,-1261.0L4640,-1242.0L4640,-1241.0L4665,-1186.0L4688,-1095.0L4682,-1047.0L4659,-1019.0L4594,-1027.0L4584,-971.0L4579,-963.0L4569,-960.0L4545,-964.0L4526,-952.0L4484,-906.0L4442,-887.0L4431,-856.0L4380,-833.0L4341,-857.0L4324,-845.0L4309,-864.0L4294,-929.0L4269,-954.0L4262,-980.0L4237,-1003.0L4215,-1054.0L4163,-1127.0L4148,-1133.0L4125,-1180.0L4137,-1196.0L4167,-1199.0L4161,-1224.0L4159,-1231.0L4142,-1245.0L4141,-1246.0L4142,-1246.0L4103,-1300.0L4095,-1320.0L4104,-1365.0Z"/>
+    <path id="p-compostela-valley" class="province" data-name="Compostela Valley" data-reg="Region XI – Davao" d="M5033,-606.0L4998,-642.0L4989,-679.0L4962,-744.0L4963,-799.0L4948,-811.0L4955,-857.0L4950,-879.0L4983,-900.0L4962,-928.0L5005,-938.0L5017,-995.0L4997,-1035.0L5022,-1082.0L5006,-1129.0L4957,-1066.0L4938,-1032.0L4912,-1014.0L4912,-1042.0L4861,-1106.0L4842,-1242.0L4842,-1242.0L4842,-1242.0L5181,-1243.0L5181,-1243.0L5173,-1196.0L5178,-1145.0L5222,-975.0L5225,-950.0L5208,-880.0L5211,-862.0L5254,-796.0L5259,-776.0L5225,-737.0L5114,-668.0L5065,-626.0L5033,-606.0Z"/>
+    <path id="p-cebu" class="province" data-name="Cebu" data-reg="Region VII – Central Visayas" d="M3673,-2789.0L3643,-2771.0L3629,-2748.0L3608,-2818.0L3631,-2855.0L3654,-2874.0L3673,-2850.0L3659,-2814.0L3673,-2789.0Z"/>
+    <path id="p-mandaue" class="province" data-name="Mandaue" data-reg="Region VII – Central Visayas" d="M3702,-2834.0L3698,-2800.0L3673,-2789.0L3659,-2814.0L3673,-2850.0L3702,-2834.0Z"/>
+    <path id="p-bacolod" class="province" data-name="Bacolod" data-reg="Region VI – Western Visayas" d="M2998,-2995.0L3008,-3022.0L3036,-3078.0L3097,-3037.0L3068,-2978.0L2998,-2995.0Z"/>
+    <path id="p-iloilo" class="province" data-name="Iloilo" data-reg="Region VI – Western Visayas" d="M2796,-3091.0L2779,-3049.0L2701,-3042.0L2713,-3098.0L2742,-3117.0L2796,-3091.0Z"/>
+    <path id="p-cotabato" class="province" data-name="Cotabato" data-reg="BARMM" d="M3845,-721.0L3870,-763.0L3868,-784.0L3890,-780.0L3926,-718.0L3910,-680.0L3875,-691.0L3845,-721.0Z"/>
+    <path id="p-davao" class="province" data-name="Davao" data-reg="Region XI – Davao" d="M4845,-750.0L4832,-732.0L4833,-659.0L4821,-632.0L4797,-609.0L4734,-583.0L4596,-583.0L4595,-643.0L4583,-662.0L4541,-694.0L4559,-731.0L4550,-814.0L4555,-860.0L4576,-930.0L4569,-960.0L4579,-963.0L4584,-971.0L4727,-969.0L4725,-745.0L4742,-731.0L4809,-733.0L4837,-757.0L4845,-750.0Z"/>
+    <path id="p-general-santos" class="province" data-name="General Santos" data-reg="Region XII – SOCCSKSARGEN" d="M4556,37.0L4499,33.0L4493,67.0L4471,132.0L4431,129.0L4428,97.0L4419,58.0L4419,-31.0L4475,-28.0L4463,-68.0L4487,-115.0L4561,-89.0L4577,-79.0L4575,-58.0L4556,-26.0L4556,37.0Z"/>
+    <path id="p-cagayan-de-oro" class="province" data-name="Cagayan de Oro" data-reg="Region X – Northern Mindanao" d="M4103,-1400.0L4103,-1400.0L4081,-1412.0L4069,-1435.0L4012,-1475.0L4055,-1520.0L4079,-1535.0L4081,-1555.0L4060,-1561.0L4101,-1595.0L4159,-1586.0L4145,-1531.0L4163,-1560.0L4195,-1558.0L4223,-1577.0L4223,-1618.0L4271,-1587.0L4273,-1531.0L4244,-1512.0L4134,-1518.0L4115,-1429.0L4103,-1400.0Z"/>
+    <path id="p-butuan" class="province" data-name="Butuan" data-reg="Region XIII – Caraga" d="M4860,-1926.0L4829,-1833.0L4837,-1782.0L4730,-1779.0L4695,-1832.0L4681,-1902.0L4695,-1905.0L4731,-1926.0L4860,-1926.0Z"/>
+    <path id="p-puerto-princesa" class="province" data-name="Puerto Princesa" data-reg="Region IV-B – MIMAROPA" d="M144,-2277.0L-26,-2372.0L3,-2398.0L74,-2449.0L86,-2474.0L118,-2504.0L136,-2544.0L168,-2582.0L160,-2597.0L205,-2623.0L238,-2686.0L241,-2654.0L232,-2645.0L257,-2631.0L283,-2665.0L269,-2690.0L272,-2729.0L318,-2741.0L347,-2738.0L365,-2767.0L358,-2787.0L387,-2799.0L451,-2733.0L446,-2706.0L521,-2633.0L437,-2601.0L406,-2602.0L357,-2584.0L306,-2579.0L268,-2557.0L238,-2554.0L222,-2523.0L244,-2456.0L239,-2420.0L211,-2426.0L210,-2448.0L188,-2448.0L197,-2392.0L215,-2395.0L224,-2375.0L206,-2374.0L203,-2351.0L182,-2315.0L165,-2310.0L144,-2277.0Z"/>
+    <path id="p-ormoc" class="province" data-name="Ormoc" data-reg="Region VIII – Eastern Visayas" d="M4127,-3256.0L4101,-3255.0L4079,-3243.0L4038,-3298.0L4044,-3327.0L4085,-3329.0L4115,-3359.0L4159,-3298.0L4127,-3256.0Z"/>
+    <path id="p-tacloban" class="province" data-name="Tacloban" data-reg="Region VIII – Eastern Visayas" d="M4360,-3480.0L4354,-3453.0L4364,-3436.0L4404,-3422.0L4403,-3389.0L4367,-3385.0L4332,-3414.0L4323,-3473.0L4360,-3480.0Z"/>
+    <path id="p-nueva-vizcaya" class="province" data-name="Nueva Vizcaya" data-reg="Region II – Cagayan Valley" d="M1975,-7125.0L2003,-7090.0L2010,-7077.0L2014,-7069.0L2016,-7048.0L1988,-6911.0L1995,-6892.0L2035,-6881.0L2022,-6835.0L1944,-6792.0L1941,-6786.0L1956,-6704.0L1972,-6663.0L2043,-6560.0L1925,-6462.0L1887,-6544.0L1879,-6573.0L1873,-6646.0L1862,-6667.0L1815,-6692.0L1763,-6704.0L1718,-6703.0L1680,-6682.0L1665,-6724.0L1596,-6750.0L1595,-6770.0L1610,-6810.0L1624,-6824.0L1662,-6833.0L1674,-6849.0L1693,-6904.0L1694,-7015.0L1911,-7050.0L1939,-7058.0L1965,-7087.0L1975,-7125.0Z"/>
+    <path id="p-santiago" class="province" data-name="Santiago" data-reg="Region II – Cagayan Valley" d="M2010,-7077.0L2003,-7090.0L1975,-7125.0L1982,-7138.0L2018,-7149.0L2034,-7169.0L2068,-7168.0L2151,-7089.0L2147,-7042.0L2126,-7020.0L2107,-7033.0L2073,-7033.0L2083,-7067.0L2066,-7096.0L2010,-7077.0Z"/>
+    <path id="p-olongapo" class="province" data-name="Olongapo" data-reg="Region III – Central Luzon" d="M1277,-5816.0L1267,-5832.0L1229,-5867.0L1276,-5902.0L1321,-5887.0L1390,-5888.0L1368,-5854.0L1316,-5840.0L1286,-5814.0L1277,-5816.0Z"/>
+    <path id="p-dagupan" class="province" data-name="Dagupan" data-reg="Region I – Ilocos" d="M1271,-6654.0L1303,-6648.0L1341,-6691.0L1365,-6646.0L1324,-6614.0L1295,-6607.0L1271,-6654.0Z"/>
+    <path id="p-mandaluyong-city" class="province" data-name="Mandaluyong City" data-reg="NCR" d="M1761,-5656.0L1769,-5665.0L1773,-5663.0L1791,-5669.0L1791,-5662.0L1789,-5653.0L1786,-5649.0L1773,-5648.0L1761,-5656.0Z"/>
+    <path id="p-manila" class="province" data-name="Manila" data-reg="NCR" d="M1769,-5665.0L1761,-5656.0L1748,-5645.0L1731,-5645.0L1717,-5668.0L1710,-5692.0L1729,-5692.0L1739,-5693.0L1745,-5691.0L1744,-5685.0L1764,-5671.0L1769,-5665.0Z"/>
+    <path id="p-navotas" class="province" data-name="Navotas" data-reg="NCR" d="M1729,-5692.0L1710,-5692.0L1707,-5709.0L1690,-5737.0L1694,-5742.0L1702,-5736.0L1718,-5702.0L1724,-5698.0L1729,-5692.0Z"/>
+    <path id="p-caloocan" class="province" data-name="Caloocan" data-reg="NCR" d="M1745,-5691.0L1739,-5693.0L1729,-5692.0L1724,-5698.0L1726,-5707.0L1748,-5716.0L1752,-5722.0L1768,-5726.0L1751,-5706.0L1745,-5691.0Z M1762,-5736.0L1752,-5742.0L1751,-5767.0L1783,-5785.0L1821,-5775.0L1803,-5758.0L1778,-5757.0L1762,-5736.0Z"/>
+    <path id="p-malabon" class="province" data-name="Malabon" data-reg="NCR" d="M1748,-5716.0L1726,-5707.0L1724,-5698.0L1718,-5702.0L1702,-5736.0L1715,-5726.0L1714,-5733.0L1727,-5718.0L1748,-5716.0Z"/>
+    <path id="p-valenzuela" class="province" data-name="Valenzuela" data-reg="NCR" d="M1768,-5726.0L1752,-5722.0L1748,-5716.0L1727,-5718.0L1714,-5733.0L1700,-5755.0L1723,-5745.0L1751,-5767.0L1752,-5742.0L1762,-5736.0L1769,-5730.0L1768,-5726.0Z"/>
+    <path id="p-quezon-city" class="province" data-name="Quezon City" data-reg="NCR" d="M1846,-5779.0L1840,-5752.0L1827,-5715.0L1819,-5712.0L1804,-5678.0L1807,-5662.0L1791,-5662.0L1791,-5669.0L1767,-5677.0L1764,-5671.0L1744,-5685.0L1745,-5691.0L1751,-5706.0L1768,-5726.0L1769,-5730.0L1762,-5736.0L1778,-5757.0L1803,-5758.0L1821,-5775.0L1830,-5781.0L1846,-5779.0Z"/>
+    <path id="p-marikina" class="province" data-name="Marikina" data-reg="NCR" d="M1804,-5678.0L1819,-5712.0L1827,-5715.0L1843,-5710.0L1841,-5689.0L1822,-5678.0L1808,-5683.0L1804,-5678.0Z"/>
+    <path id="p-san-juan" class="province" data-name="San Juan" data-reg="NCR" d="M1791,-5669.0L1773,-5663.0L1769,-5665.0L1764,-5671.0L1767,-5677.0L1791,-5669.0Z"/>
+    <path id="p-pasig" class="province" data-name="Pasig" data-reg="NCR" d="M1822,-5678.0L1821,-5638.0L1826,-5622.0L1815,-5633.0L1804,-5634.0L1800,-5639.0L1797,-5637.0L1796,-5644.0L1786,-5649.0L1789,-5653.0L1791,-5662.0L1807,-5662.0L1804,-5678.0L1808,-5683.0L1822,-5678.0Z"/>
+    <path id="p-makati" class="province" data-name="Makati" data-reg="NCR" d="M1786,-5649.0L1796,-5644.0L1797,-5637.0L1794,-5634.0L1794,-5629.0L1780,-5631.0L1765,-5624.0L1759,-5626.0L1748,-5645.0L1761,-5656.0L1773,-5648.0L1786,-5649.0Z"/>
+    <path id="p-pasay" class="province" data-name="Pasay" data-reg="NCR" d="M1734,-5629.0L1731,-5645.0L1748,-5645.0L1759,-5626.0L1765,-5624.0L1773,-5610.0L1749,-5612.0L1734,-5629.0Z"/>
+    <path id="p-paranaque" class="province" data-name="Paranaque" data-reg="NCR" d="M1726,-5610.0L1731,-5616.0L1734,-5629.0L1749,-5612.0L1773,-5610.0L1781,-5607.0L1780,-5582.0L1780,-5572.0L1765,-5564.0L1742,-5596.0L1726,-5610.0Z"/>
+    <path id="p-las-pinas" class="province" data-name="Las Pinas" data-reg="NCR" d="M1718,-5603.0L1724,-5607.0L1726,-5610.0L1742,-5596.0L1765,-5564.0L1764,-5557.0L1752,-5537.0L1727,-5572.0L1718,-5603.0Z"/>
+    <path id="p-muntinlupa" class="province" data-name="Muntinlupa" data-reg="NCR" d="M1752,-5537.0L1764,-5557.0L1765,-5564.0L1780,-5572.0L1780,-5582.0L1791,-5585.0L1831,-5574.0L1837,-5530.0L1787,-5528.0L1753,-5511.0L1754,-5530.0L1752,-5537.0Z"/>
+    <path id="p-taguig" class="province" data-name="Taguig" data-reg="NCR" d="M1804,-5634.0L1815,-5633.0L1826,-5622.0L1831,-5574.0L1791,-5585.0L1780,-5582.0L1781,-5607.0L1773,-5610.0L1765,-5624.0L1780,-5631.0L1794,-5629.0L1799,-5629.0L1804,-5634.0Z"/>
+    <path id="p-pateros" class="province" data-name="Pateros" data-reg="NCR" d="M1804,-5634.0L1799,-5629.0L1794,-5629.0L1794,-5634.0L1797,-5637.0L1800,-5639.0L1804,-5634.0Z"/>
+    <path id="p-lucena" class="province" data-name="Lucena" data-reg="Region IV-A – CALABARZON" d="M2158,-5206.0L2128,-5198.0L2100,-5186.0L2067,-5239.0L2122,-5265.0L2158,-5206.0Z"/>
+    <path id="p-zamboanga" class="province" data-name="Zamboanga" data-reg="Region IX – Zamboanga Peninsula" d="M2557,-884.0L2623,-885.0L2615,-872.0L2636,-831.0L2613,-791.0L2583,-783.0L2560,-735.0L2545,-635.0L2517,-597.0L2485,-520.0L2461,-499.0L2407,-513.0L2339,-554.0L2314,-607.0L2317,-672.0L2450,-662.0L2464,-670.0L2493,-714.0L2507,-759.0L2507,-800.0L2518,-827.0L2557,-884.0Z"/>
+    <path id="p-zamboanga-del-sur" class="province" data-name="Zamboanga del Sur" data-reg="Region IX – Zamboanga Peninsula" d="M2995,-1184.0L3041,-1191.0L3078,-1229.0L3095,-1239.0L3136,-1241.0L3175,-1230.0L3166,-1267.0L3166,-1380.0L3178,-1393.0L3423,-1394.0L3420,-1326.0L3423,-1286.0L3434,-1266.0L3469,-1259.0L3481,-1245.0L3505,-1246.0L3500,-1218.0L3512,-1218.0L3523,-1178.0L3516,-1166.0L3463,-1127.0L3444,-1131.0L3389,-1126.0L3349,-1105.0L3352,-1082.0L3385,-1043.0L3377,-1013.0L3349,-990.0L3317,-978.0L3314,-954.0L3288,-952.0L3317,-914.0L3321,-898.0L3354,-871.0L3358,-842.0L3347,-818.0L3333,-817.0L3281,-850.0L3243,-891.0L3239,-917.0L3203,-914.0L3185,-891.0L3166,-894.0L3133,-937.0L3137,-952.0L3170,-963.0L3177,-988.0L3146,-1011.0L3138,-1059.0L3116,-1047.0L3109,-1109.0L3088,-1118.0L3000,-1125.0L2995,-1184.0L2995,-1184.0Z"/>
+    <path id="p-negros-occidental" class="province" data-name="Negros Occidental" data-reg="Region VI – Western Visayas" d="M2998,-2995.0L3068,-2978.0L3097,-3037.0L3036,-3078.0L3033,-3121.0L3019,-3135.0L3029,-3168.0L3053,-3193.0L3110,-3202.0L3193,-3249.0L3224,-3248.0L3270,-3219.0L3319,-3220.0L3321,-3198.0L3347,-3213.0L3398,-3198.0L3411,-3161.0L3433,-3135.0L3430,-3104.0L3395,-3038.0L3374,-2949.0L3366,-2934.0L3310,-2874.0L3295,-2844.0L3222,-2860.0L3197,-2879.0L3147,-2863.0L3168,-2783.0L3160,-2741.0L3060,-2556.0L2783,-2203.0L2753,-2239.0L2738,-2271.0L2716,-2287.0L2681,-2361.0L2668,-2351.0L2673,-2389.0L2654,-2379.0L2659,-2452.0L2649,-2471.0L2702,-2563.0L2759,-2572.0L2803,-2563.0L2857,-2571.0L2924,-2627.0L2949,-2626.0L2971,-2660.0L2955,-2733.0L2965,-2816.0L2958,-2845.0L2933,-2897.0L2935,-2938.0L2959,-2947.0L2998,-2995.0Z"/>
+    <path id="p-zamboanga-del-norte" class="province" data-name="Zamboanga del Norte" data-reg="Region IX – Zamboanga Peninsula" d="M3418,-1654.0L3423,-1394.0L3178,-1393.0L3166,-1380.0L3166,-1267.0L3175,-1230.0L3136,-1241.0L3095,-1239.0L3078,-1229.0L3041,-1191.0L2995,-1184.0L2913,-1202.0L2860,-1195.0L2766,-1159.0L2744,-1144.0L2675,-1073.0L2642,-1055.0L2626,-1038.0L2617,-1001.0L2578,-955.0L2557,-884.0L2518,-827.0L2507,-800.0L2507,-759.0L2493,-714.0L2464,-670.0L2450,-662.0L2317,-672.0L2337,-715.0L2385,-756.0L2413,-770.0L2404,-796.0L2413,-865.0L2434,-923.0L2480,-963.0L2458,-973.0L2464,-1009.0L2461,-1053.0L2447,-1068.0L2469,-1115.0L2526,-1186.0L2543,-1216.0L2578,-1246.0L2676,-1283.0L2784,-1301.0L2817,-1316.0L2837,-1349.0L2858,-1319.0L2890,-1316.0L3001,-1339.0L3053,-1379.0L3061,-1394.0L3028,-1423.0L3024,-1445.0L3049,-1468.0L3046,-1505.0L3072,-1557.0L3106,-1587.0L3193,-1602.0L3213,-1587.0L3253,-1590.0L3273,-1605.0L3294,-1657.0L3326,-1662.0L3343,-1674.0L3312,-1721.0L3335,-1726.0L3371,-1705.0L3394,-1708.0L3400,-1656.0L3418,-1654.0Z"/>
+    <path id="p-misamis-occidental" class="province" data-name="Misamis Occidental" data-reg="Region X – Northern Mindanao" d="M3423,-1394.0L3418,-1654.0L3440,-1630.0L3449,-1657.0L3472,-1676.0L3534,-1660.0L3558,-1647.0L3577,-1600.0L3616,-1542.0L3630,-1484.0L3633,-1402.0L3643,-1364.0L3635,-1342.0L3565,-1279.0L3510,-1264.0L3505,-1246.0L3481,-1245.0L3469,-1259.0L3434,-1266.0L3423,-1286.0L3420,-1326.0L3423,-1394.0Z"/>
+    <path id="p-abra" class="province" data-name="Abra" data-reg="CAR" d="M1727,-7935.0L1760,-7907.0L1766,-7873.0L1782,-7848.0L1820,-7845.0L1839,-7809.0L1846,-7743.0L1828,-7728.0L1839,-7671.0L1830,-7651.0L1782,-7626.0L1761,-7595.0L1751,-7531.0L1714,-7474.0L1706,-7453.0L1701,-7422.0L1679,-7408.0L1640,-7428.0L1602,-7393.0L1587,-7391.0L1558,-7420.0L1546,-7467.0L1521,-7471.0L1511,-7489.0L1486,-7493.0L1462,-7516.0L1461,-7535.0L1496,-7591.0L1487,-7618.0L1457,-7626.0L1420,-7624.0L1430,-7684.0L1468,-7761.0L1490,-7802.0L1520,-7838.0L1572,-7856.0L1601,-7886.0L1655,-7920.0L1713,-7923.0L1727,-7935.0Z"/>
+    <path id="p-apayao" class="province" data-name="Apayao" data-reg="CAR" d="M1846,-7743.0L1839,-7809.0L1820,-7845.0L1782,-7848.0L1766,-7873.0L1760,-7907.0L1727,-7935.0L1733,-7955.0L1728,-8008.0L1733,-8035.0L1754,-8064.0L1749,-8087.0L1715,-8106.0L1712,-8127.0L1733,-8140.0L1741,-8167.0L1735,-8210.0L1742,-8257.0L1759,-8263.0L1808,-8313.0L1826,-8312.0L1834,-8282.0L1850,-8269.0L1916,-8247.0L1948,-8231.0L2062,-8157.0L2076,-8135.0L2079,-8078.0L2064,-8020.0L2008,-7915.0L1997,-7884.0L1970,-7849.0L1985,-7825.0L2014,-7821.0L2028,-7801.0L2041,-7764.0L1955,-7754.0L1905,-7742.0L1846,-7743.0Z"/>
+    <path id="p-kalinga" class="province" data-name="Kalinga" data-reg="CAR" d="M1846,-7743.0L1905,-7742.0L1955,-7754.0L2041,-7764.0L2128,-7660.0L2184,-7629.0L2195,-7610.0L2158,-7564.0L2145,-7502.0L2129,-7450.0L2035,-7483.0L1981,-7456.0L1935,-7412.0L1886,-7397.0L1822,-7409.0L1706,-7453.0L1714,-7474.0L1751,-7531.0L1761,-7595.0L1782,-7626.0L1830,-7651.0L1839,-7671.0L1828,-7728.0L1846,-7743.0Z"/>
+    <path id="p-aurora" class="province" data-name="Aurora" data-reg="Region III – Central Luzon" d="M2428,-6949.0L2562,-6951.0L2537,-6893.0L2549,-6864.0L2528,-6821.0L2531,-6804.0L2554,-6822.0L2532,-6765.0L2518,-6763.0L2449,-6688.0L2441,-6661.0L2397,-6634.0L2424,-6687.0L2455,-6708.0L2469,-6748.0L2489,-6760.0L2491,-6783.0L2473,-6785.0L2453,-6770.0L2446,-6736.0L2373,-6702.0L2317,-6690.0L2292,-6670.0L2242,-6661.0L2197,-6624.0L2170,-6589.0L2128,-6565.0L2116,-6540.0L2112,-6495.0L2125,-6459.0L2162,-6447.0L2165,-6424.0L2138,-6392.0L2160,-6382.0L2124,-6360.0L2116,-6336.0L2067,-6289.0L2062,-6245.0L2027,-6190.0L2008,-6196.0L1996,-6147.0L2018,-6095.0L2039,-6079.0L2015,-6075.0L2006,-6047.0L2011,-6026.0L1979,-5977.0L1980,-5959.0L1962,-5962.0L1939,-5990.0L1949,-6030.0L1945,-6062.0L1965,-6160.0L1988,-6232.0L1985,-6281.0L1925,-6462.0L2043,-6560.0L2279,-6756.0L2321,-6798.0L2428,-6949.0Z"/>
+    <path id="p-isabela" class="province" data-name="Isabela" data-reg="Region II – Cagayan Valley" d="M2562,-6951.0L2428,-6949.0L2252,-6876.0L2234,-6881.0L2126,-7020.0L2147,-7042.0L2151,-7089.0L2068,-7168.0L2104,-7185.0L2128,-7222.0L2132,-7290.0L2124,-7340.0L2128,-7367.0L2129,-7450.0L2145,-7502.0L2158,-7564.0L2195,-7610.0L2184,-7629.0L2292,-7632.0L2335,-7645.0L2526,-7643.0L2540,-7598.0L2562,-7566.0L2569,-7521.0L2592,-7521.0L2617,-7508.0L2653,-7512.0L2688,-7475.0L2693,-7457.0L2671,-7464.0L2679,-7427.0L2675,-7377.0L2697,-7355.0L2730,-7373.0L2748,-7339.0L2711,-7272.0L2706,-7208.0L2678,-7141.0L2646,-7087.0L2628,-7039.0L2590,-6975.0L2562,-6951.0Z M2016,-7048.0L2014,-7069.0L2010,-7077.0L2066,-7096.0L2083,-7067.0L2073,-7033.0L2034,-7038.0L2016,-7048.0Z"/>
+    <path id="p-ifugao" class="province" data-name="Ifugao" data-reg="CAR" d="M2124,-7340.0L2132,-7290.0L2128,-7222.0L2104,-7185.0L2068,-7168.0L2034,-7169.0L2018,-7149.0L1982,-7138.0L1975,-7125.0L1965,-7087.0L1939,-7058.0L1911,-7050.0L1694,-7015.0L1687,-7055.0L1680,-7150.0L1662,-7183.0L1706,-7181.0L1723,-7199.0L1743,-7252.0L1766,-7273.0L1823,-7294.0L1885,-7289.0L1920,-7294.0L1961,-7316.0L2041,-7340.0L2124,-7340.0Z"/>
+    <path id="p-mountain-province" class="province" data-name="Mountain Province" data-reg="CAR" d="M2129,-7450.0L2128,-7367.0L2124,-7340.0L2041,-7340.0L1961,-7316.0L1920,-7294.0L1885,-7289.0L1823,-7294.0L1766,-7273.0L1743,-7252.0L1723,-7199.0L1706,-7181.0L1662,-7183.0L1635,-7205.0L1613,-7233.0L1622,-7259.0L1619,-7334.0L1638,-7382.0L1656,-7401.0L1679,-7408.0L1701,-7422.0L1706,-7453.0L1822,-7409.0L1886,-7397.0L1935,-7412.0L1981,-7456.0L2035,-7483.0L2129,-7450.0Z"/>
+    <path id="p-quirino" class="province" data-name="Quirino" data-reg="Region II – Cagayan Valley" d="M2016,-7048.0L2034,-7038.0L2073,-7033.0L2107,-7033.0L2126,-7020.0L2234,-6881.0L2252,-6876.0L2428,-6949.0L2321,-6798.0L2279,-6756.0L2043,-6560.0L1972,-6663.0L1956,-6704.0L1941,-6786.0L1944,-6792.0L2022,-6835.0L2035,-6881.0L1995,-6892.0L1988,-6911.0L2016,-7048.0Z"/>
+    <path id="p-nueva-ecija" class="province" data-name="Nueva Ecija" data-reg="Region III – Central Luzon" d="M1707,-6090.0L1681,-6068.0L1647,-6054.0L1643,-6074.0L1611,-6088.0L1602,-6117.0L1603,-6146.0L1586,-6162.0L1583,-6194.0L1590,-6221.0L1585,-6279.0L1576,-6305.0L1596,-6344.0L1589,-6358.0L1553,-6362.0L1531,-6386.0L1518,-6421.0L1509,-6494.0L1581,-6511.0L1610,-6504.0L1629,-6475.0L1647,-6483.0L1677,-6547.0L1700,-6571.0L1705,-6599.0L1680,-6682.0L1718,-6703.0L1763,-6704.0L1815,-6692.0L1862,-6667.0L1873,-6646.0L1879,-6573.0L1887,-6544.0L1925,-6462.0L1985,-6281.0L1988,-6232.0L1965,-6160.0L1945,-6062.0L1912,-6063.0L1855,-6105.0L1825,-6116.0L1798,-6114.0L1707,-6090.0Z"/>
+    <path id="p-pampanga" class="province" data-name="Pampanga" data-reg="Region III – Central Luzon" d="M1602,-6117.0L1611,-6088.0L1643,-6074.0L1647,-6054.0L1681,-6068.0L1707,-6090.0L1696,-6063.0L1709,-6016.0L1685,-5952.0L1635,-5900.0L1567,-5872.0L1526,-5795.0L1511,-5801.0L1498,-5831.0L1480,-5822.0L1488,-5867.0L1475,-5879.0L1467,-5836.0L1449,-5828.0L1418,-5849.0L1394,-5906.0L1373,-5942.0L1372,-5975.0L1337,-6010.0L1331,-6043.0L1344,-6059.0L1358,-6060.0L1399,-6094.0L1459,-6115.0L1550,-6120.0L1584,-6127.0L1602,-6117.0Z M1510,-6022.0L1511,-6064.0L1467,-6063.0L1429,-6042.0L1456,-6035.0L1481,-6014.0L1510,-6022.0Z"/>
+    <path id="p-bataan" class="province" data-name="Bataan" data-reg="Region III – Central Luzon" d="M1394,-5906.0L1418,-5849.0L1449,-5828.0L1444,-5745.0L1469,-5716.0L1466,-5690.0L1481,-5612.0L1458,-5569.0L1387,-5568.0L1352,-5580.0L1336,-5615.0L1339,-5656.0L1331,-5691.0L1304,-5709.0L1277,-5714.0L1250,-5765.0L1270,-5777.0L1251,-5790.0L1277,-5816.0L1286,-5814.0L1316,-5840.0L1368,-5854.0L1390,-5888.0L1394,-5906.0Z"/>
+    <path id="p-benguet" class="province" data-name="Benguet" data-reg="CAR" d="M1596,-6750.0L1540,-6741.0L1447,-6772.0L1423,-6848.0L1414,-6929.0L1421,-6964.0L1442,-6997.0L1495,-7054.0L1511,-7082.0L1524,-7193.0L1540,-7217.0L1590,-7223.0L1613,-7233.0L1635,-7205.0L1662,-7183.0L1680,-7150.0L1687,-7055.0L1694,-7015.0L1693,-6904.0L1674,-6849.0L1662,-6833.0L1624,-6824.0L1610,-6810.0L1595,-6770.0L1596,-6750.0Z M1525,-6906.0L1473,-6908.0L1486,-6857.0L1530,-6853.0L1525,-6906.0Z"/>
+    <path id="p-zambales" class="province" data-name="Zambales" data-reg="Region III – Central Luzon" d="M1344,-6059.0L1331,-6043.0L1337,-6010.0L1372,-5975.0L1373,-5942.0L1394,-5906.0L1390,-5888.0L1321,-5887.0L1276,-5902.0L1229,-5867.0L1214,-5796.0L1206,-5784.0L1175,-5791.0L1144,-5817.0L1126,-5902.0L1129,-5991.0L1107,-6087.0L1097,-6097.0L1099,-6130.0L1067,-6189.0L1025,-6238.0L1046,-6267.0L1070,-6280.0L1075,-6295.0L1037,-6351.0L1049,-6394.0L1048,-6414.0L1014,-6450.0L1029,-6453.0L1029,-6489.0L1066,-6488.0L1107,-6522.0L1156,-6502.0L1191,-6499.0L1218,-6435.0L1251,-6385.0L1260,-6359.0L1208,-6270.0L1191,-6221.0L1204,-6178.0L1224,-6163.0L1297,-6130.0L1324,-6097.0L1344,-6059.0Z"/>
+    <path id="p-cavite" class="province" data-name="Cavite" data-reg="Region IV-A – CALABARZON" d="M1478,-5420.0L1498,-5453.0L1555,-5472.0L1591,-5501.0L1605,-5523.0L1663,-5579.0L1691,-5581.0L1718,-5603.0L1727,-5572.0L1752,-5537.0L1754,-5530.0L1753,-5511.0L1752,-5490.0L1791,-5482.0L1773,-5443.0L1780,-5431.0L1760,-5386.0L1763,-5367.0L1757,-5355.0L1698,-5329.0L1655,-5322.0L1620,-5345.0L1556,-5365.0L1536,-5386.0L1537,-5401.0L1513,-5417.0L1478,-5420.0Z"/>
+    <path id="p-bulacan" class="province" data-name="Bulacan" data-reg="Region III – Central Luzon" d="M1945,-6062.0L1949,-6030.0L1939,-5990.0L1962,-5962.0L1966,-5939.0L1969,-5865.0L1947,-5866.0L1921,-5838.0L1880,-5824.0L1846,-5779.0L1830,-5781.0L1821,-5775.0L1783,-5785.0L1751,-5767.0L1723,-5745.0L1700,-5755.0L1714,-5733.0L1715,-5726.0L1702,-5736.0L1694,-5742.0L1690,-5737.0L1676,-5758.0L1634,-5784.0L1570,-5787.0L1526,-5795.0L1567,-5872.0L1635,-5900.0L1685,-5952.0L1709,-6016.0L1696,-6063.0L1707,-6090.0L1798,-6114.0L1825,-6116.0L1855,-6105.0L1912,-6063.0L1945,-6062.0Z"/>
+    <path id="p-mindoro-oriental" class="province" data-name="Mindoro Oriental" data-reg="Region IV-B – MIMAROPA" d="M1668,-4938.0L1691,-4938.0L1705,-4955.0L1723,-4955.0L1710,-4937.0L1766,-4876.0L1809,-4877.0L1817,-4848.0L1835,-4875.0L1867,-4894.0L1881,-4869.0L1956,-4806.0L1984,-4761.0L2020,-4747.0L2030,-4690.0L2083,-4691.0L2097,-4657.0L2058,-4621.0L2053,-4590.0L2059,-4538.0L2049,-4502.0L2054,-4441.0L2080,-4398.0L2094,-4357.0L2084,-4331.0L2058,-4294.0L2022,-4275.0L2016,-4231.0L2004,-4204.0L2025,-4166.0L1986,-4173.0L1984,-4139.0L1966,-4143.0L1912,-4107.0L1895,-4074.0L1898,-4618.0L1864,-4650.0L1591,-4771.0L1666,-4870.0L1672,-4901.0L1668,-4938.0Z"/>
+    <path id="p-siquijor" class="province" data-name="Siquijor" data-reg="Region VII – Central Visayas" d="M3457,-2086.0L3461,-2104.0L3489,-2104.0L3519,-2057.0L3507,-2044.0L3533,-2010.0L3512,-1992.0L3484,-1990.0L3478,-1976.0L3426,-1986.0L3371,-2025.0L3368,-2042.0L3428,-2061.0L3457,-2086.0Z"/>
+    <path id="p-guimaras" class="province" data-name="Guimaras" data-reg="Region VI – Western Visayas" d="M2739,-2977.0L2769,-3027.0L2802,-3040.0L2809,-3065.0L2833,-3092.0L2860,-3073.0L2878,-3046.0L2877,-3010.0L2867,-2973.0L2844,-2920.0L2809,-2879.0L2783,-2871.0L2782,-2889.0L2740,-2865.0L2733,-2896.0L2708,-2918.0L2731,-2922.0L2755,-2949.0L2743,-2952.0L2739,-2977.0Z"/>
+    <path id="p-catanduanes" class="province" data-name="Catanduanes" data-reg="Region V – Bicol" d="M3976,-5044.0L3941,-5039.0L3927,-4980.0L3901,-5001.0L3854,-4986.0L3839,-4951.0L3820,-4951.0L3765,-4998.0L3739,-5002.0L3725,-5044.0L3765,-5076.0L3788,-5118.0L3792,-5144.0L3787,-5183.0L3796,-5204.0L3783,-5259.0L3796,-5273.0L3788,-5299.0L3838,-5328.0L3861,-5312.0L3881,-5282.0L3889,-5237.0L3914,-5204.0L3923,-5222.0L3982,-5182.0L3963,-5164.0L3982,-5132.0L3969,-5114.0L3964,-5074.0L3976,-5044.0Z"/>
+    <path id="p-masbate" class="province" data-name="Masbate" data-reg="Region V – Bicol" d="M3440,-4158.0L3472,-4171.0L3516,-4138.0L3558,-4067.0L3576,-4049.0L3576,-4089.0L3612,-4058.0L3634,-4066.0L3680,-3994.0L3701,-3979.0L3711,-3950.0L3749,-3893.0L3712,-3929.0L3719,-3901.0L3751,-3840.0L3749,-3789.0L3761,-3752.0L3749,-3740.0L3727,-3778.0L3662,-3829.0L3640,-3837.0L3617,-3865.0L3572,-3874.0L3557,-3866.0L3522,-3892.0L3544,-3910.0L3487,-3952.0L3480,-3975.0L3458,-3976.0L3450,-4002.0L3408,-4053.0L3372,-4069.0L3332,-4057.0L3286,-3987.0L3272,-3983.0L3227,-3927.0L3172,-3876.0L3151,-3876.0L3160,-3919.0L3177,-3930.0L3191,-3974.0L3194,-4012.0L3235,-4033.0L3223,-4053.0L3246,-4081.0L3196,-4075.0L3195,-4101.0L3216,-4129.0L3232,-4207.0L3212,-4234.0L3205,-4312.0L3211,-4322.0L3263,-4305.0L3286,-4290.0L3275,-4290.0L3286,-4255.0L3267,-4236.0L3267,-4216.0L3314,-4271.0L3347,-4266.0L3390,-4232.0L3412,-4232.0L3454,-4177.0L3440,-4158.0Z M3535,-4196.0L3436,-4341.0L3453,-4384.0L3478,-4364.0L3524,-4331.0L3560,-4239.0L3576,-4154.0L3535,-4196.0Z M3174,-4498.0L3124,-4542.0L3075,-4596.0L3034,-4606.0L3019,-4623.0L3015,-4668.0L3044,-4680.0L3047,-4696.0L3078,-4679.0L3114,-4623.0L3130,-4610.0L3157,-4552.0L3184,-4531.0L3224,-4525.0L3236,-4503.0L3240,-4469.0L3289,-4417.0L3299,-4388.0L3276,-4404.0L3232,-4467.0L3209,-4487.0L3174,-4498.0Z"/>
+    <path id="p-marinduque" class="province" data-name="Marinduque" data-reg="Region IV-B – MIMAROPA" d="M2420,-4776.0L2421,-4749.0L2390,-4730.0L2335,-4776.0L2305,-4786.0L2274,-4825.0L2273,-4898.0L2297,-4945.0L2302,-4975.0L2321,-4967.0L2335,-4946.0L2388,-4951.0L2394,-4964.0L2417,-4940.0L2421,-4923.0L2470,-4907.0L2464,-4869.0L2479,-4854.0L2474,-4834.0L2420,-4776.0Z"/>
+    <path id="p-biliran" class="province" data-name="Biliran" data-reg="Region VIII – Eastern Visayas" d="M3987,-3620.0L3962,-3687.0L3944,-3710.0L3998,-3720.0L4041,-3720.0L4081,-3697.0L4110,-3632.0L4127,-3612.0L4117,-3581.0L4035,-3581.0L4031,-3572.0L3987,-3620.0Z"/>
+    <path id="p-southern-leyte" class="province" data-name="Southern Leyte" data-reg="Region VIII – Eastern Visayas" d="M4575,-2580.0L4586,-2544.0L4576,-2533.0L4560,-2535.0L4514,-2609.0L4479,-2632.0L4464,-2687.0L4481,-2696.0L4526,-2672.0L4541,-2655.0L4551,-2610.0L4575,-2580.0Z M4491,-3003.0L4508,-2990.0L4503,-2943.0L4512,-2910.0L4512,-2876.0L4535,-2845.0L4558,-2833.0L4564,-2787.0L4554,-2761.0L4533,-2756.0L4487,-2774.0L4475,-2772.0L4472,-2738.0L4482,-2710.0L4459,-2717.0L4440,-2738.0L4408,-2805.0L4408,-2829.0L4387,-2842.0L4367,-2829.0L4376,-2809.0L4381,-2718.0L4398,-2676.0L4410,-2617.0L4403,-2598.0L4327,-2649.0L4304,-2675.0L4259,-2677.0L4235,-2686.0L4226,-2708.0L4278,-2741.0L4289,-2760.0L4317,-2769.0L4318,-2786.0L4303,-2876.0L4329,-2924.0L4356,-2934.0L4405,-2938.0L4433,-2950.0L4460,-2987.0L4491,-3003.0Z"/>
+    <path id="p-negros-oriental" class="province" data-name="Negros Oriental" data-reg="Region VII – Central Visayas" d="M3295,-2844.0L3281,-2814.0L3278,-2755.0L3254,-2700.0L3245,-2643.0L3197,-2570.0L3188,-2539.0L3156,-2492.0L3165,-2376.0L3158,-2344.0L3142,-2324.0L3170,-2305.0L3142,-2280.0L3172,-2270.0L3183,-2236.0L3219,-2207.0L3230,-2177.0L3266,-2140.0L3270,-2112.0L3251,-2054.0L3205,-1982.0L3159,-1953.0L3126,-1951.0L3074,-1933.0L3045,-1942.0L3007,-1991.0L2980,-2058.0L2976,-2103.0L2965,-2126.0L2926,-2153.0L2868,-2158.0L2823,-2179.0L2809,-2195.0L2783,-2203.0L3060,-2556.0L3160,-2741.0L3168,-2783.0L3147,-2863.0L3197,-2879.0L3222,-2860.0L3295,-2844.0Z"/>
+    <path id="p-aklan" class="province" data-name="Aklan" data-reg="Region VI – Western Visayas" d="M2294,-3769.0L2317,-3803.0L2323,-3853.0L2367,-3879.0L2411,-3854.0L2426,-3834.0L2469,-3805.0L2542,-3789.0L2566,-3779.0L2613,-3746.0L2647,-3740.0L2673,-3700.0L2729,-3653.0L2769,-3637.0L2782,-3623.0L2742,-3585.0L2730,-3562.0L2688,-3556.0L2644,-3561.0L2626,-3499.0L2609,-3483.0L2559,-3470.0L2509,-3468.0L2511,-3504.0L2504,-3534.0L2472,-3576.0L2489,-3615.0L2480,-3629.0L2487,-3656.0L2481,-3690.0L2499,-3729.0L2474,-3770.0L2414,-3804.0L2361,-3808.0L2294,-3769.0Z"/>
+    <path id="p-capiz" class="province" data-name="Capiz" data-reg="Region VI – Western Visayas" d="M2782,-3623.0L2802,-3593.0L2823,-3604.0L2827,-3633.0L2844,-3618.0L2874,-3649.0L2870,-3662.0L2915,-3662.0L2956,-3648.0L2969,-3619.0L3015,-3602.0L2982,-3578.0L2970,-3551.0L2986,-3545.0L3022,-3567.0L3057,-3578.0L3081,-3597.0L3108,-3606.0L3080,-3554.0L3079,-3526.0L3045,-3494.0L3019,-3487.0L3023,-3451.0L2977,-3433.0L2976,-3395.0L2960,-3381.0L2937,-3387.0L2913,-3378.0L2908,-3396.0L2833,-3392.0L2778,-3410.0L2761,-3407.0L2754,-3388.0L2724,-3375.0L2692,-3381.0L2656,-3379.0L2616,-3397.0L2580,-3387.0L2548,-3357.0L2527,-3378.0L2516,-3404.0L2509,-3468.0L2559,-3470.0L2609,-3483.0L2626,-3499.0L2644,-3561.0L2688,-3556.0L2730,-3562.0L2742,-3585.0L2782,-3623.0Z"/>
+    <path id="p-camarines-norte" class="province" data-name="Camarines Norte" data-reg="Region V – Bicol" d="M2600,-5330.0L2616,-5341.0L2625,-5369.0L2611,-5392.0L2644,-5426.0L2637,-5441.0L2652,-5470.0L2661,-5463.0L2705,-5497.0L2737,-5483.0L2743,-5499.0L2791,-5483.0L2789,-5474.0L2819,-5456.0L2849,-5460.0L2839,-5477.0L2842,-5500.0L2870,-5477.0L2890,-5488.0L2922,-5457.0L2956,-5452.0L3006,-5400.0L3060,-5335.0L3079,-5330.0L3073,-5280.0L3107,-5247.0L3105,-5187.0L3088,-5171.0L3084,-5145.0L3050,-5194.0L3002,-5241.0L2931,-5260.0L2711,-5366.0L2682,-5364.0L2643,-5332.0L2613,-5317.0L2600,-5330.0Z"/>
+    <path id="p-sorsogon" class="province" data-name="Sorsogon" data-reg="Region V – Bicol" d="M3667,-4674.0L3715,-4648.0L3763,-4601.0L3786,-4645.0L3831,-4634.0L3832,-4609.0L3806,-4588.0L3787,-4539.0L3798,-4514.0L3805,-4459.0L3796,-4378.0L3769,-4346.0L3774,-4298.0L3755,-4287.0L3700,-4290.0L3666,-4334.0L3631,-4356.0L3607,-4404.0L3606,-4461.0L3574,-4481.0L3604,-4486.0L3620,-4509.0L3649,-4488.0L3671,-4493.0L3676,-4511.0L3712,-4514.0L3729,-4536.0L3726,-4565.0L3683,-4564.0L3640,-4578.0L3620,-4536.0L3594,-4512.0L3551,-4510.0L3529,-4490.0L3527,-4522.0L3498,-4516.0L3515,-4545.0L3492,-4543.0L3479,-4518.0L3446,-4524.0L3428,-4546.0L3378,-4577.0L3415,-4606.0L3484,-4624.0L3571,-4615.0L3649,-4631.0L3667,-4674.0Z"/>
+    <path id="p-ilocos-norte" class="province" data-name="Ilocos Norte" data-reg="Region I – Ilocos" d="M1397,-7890.0L1431,-7964.0L1427,-8022.0L1464,-8097.0L1459,-8107.0L1490,-8156.0L1504,-8205.0L1503,-8232.0L1489,-8276.0L1495,-8297.0L1521,-8321.0L1572,-8318.0L1624,-8335.0L1630,-8376.0L1639,-8385.0L1676,-8387.0L1702,-8347.0L1724,-8337.0L1768,-8364.0L1753,-8329.0L1742,-8257.0L1735,-8210.0L1741,-8167.0L1733,-8140.0L1712,-8127.0L1715,-8106.0L1749,-8087.0L1754,-8064.0L1733,-8035.0L1728,-8008.0L1733,-7955.0L1727,-7935.0L1713,-7923.0L1655,-7920.0L1601,-7886.0L1572,-7856.0L1520,-7838.0L1490,-7802.0L1468,-7761.0L1449,-7781.0L1470,-7870.0L1445,-7891.0L1397,-7890.0Z"/>
+    <path id="p-ilocos-sur" class="province" data-name="Ilocos Sur" data-reg="Region I – Ilocos" d="M1370,-7235.0L1389,-7264.0L1395,-7294.0L1384,-7410.0L1376,-7438.0L1382,-7467.0L1380,-7506.0L1402,-7536.0L1398,-7573.0L1377,-7623.0L1378,-7638.0L1338,-7652.0L1334,-7664.0L1348,-7745.0L1380,-7758.0L1389,-7790.0L1373,-7815.0L1394,-7843.0L1397,-7890.0L1445,-7891.0L1470,-7870.0L1449,-7781.0L1468,-7761.0L1430,-7684.0L1420,-7624.0L1457,-7626.0L1487,-7618.0L1496,-7591.0L1461,-7535.0L1462,-7516.0L1486,-7493.0L1511,-7489.0L1521,-7471.0L1546,-7467.0L1558,-7420.0L1587,-7391.0L1602,-7393.0L1640,-7428.0L1679,-7408.0L1656,-7401.0L1638,-7382.0L1619,-7334.0L1622,-7259.0L1613,-7233.0L1590,-7223.0L1540,-7217.0L1524,-7193.0L1511,-7082.0L1495,-7054.0L1464,-7097.0L1467,-7137.0L1444,-7186.0L1452,-7221.0L1446,-7233.0L1390,-7227.0L1370,-7235.0Z"/>
+    <path id="p-tarlac" class="province" data-name="Tarlac" data-reg="Region III – Central Luzon" d="M1260,-6359.0L1316,-6393.0L1333,-6429.0L1358,-6452.0L1420,-6426.0L1467,-6460.0L1493,-6529.0L1509,-6494.0L1518,-6421.0L1531,-6386.0L1553,-6362.0L1589,-6358.0L1596,-6344.0L1576,-6305.0L1585,-6279.0L1590,-6221.0L1583,-6194.0L1586,-6162.0L1603,-6146.0L1602,-6117.0L1584,-6127.0L1550,-6120.0L1459,-6115.0L1399,-6094.0L1358,-6060.0L1344,-6059.0L1324,-6097.0L1297,-6130.0L1224,-6163.0L1204,-6178.0L1191,-6221.0L1208,-6270.0L1260,-6359.0Z"/>
+    <path id="p-la-union" class="province" data-name="La Union" data-reg="Region I – Ilocos" d="M1370,-7235.0L1390,-7227.0L1446,-7233.0L1452,-7221.0L1444,-7186.0L1467,-7137.0L1464,-7097.0L1495,-7054.0L1442,-6997.0L1421,-6964.0L1414,-6929.0L1423,-6848.0L1447,-6772.0L1417,-6754.0L1366,-6758.0L1356,-6787.0L1336,-6814.0L1324,-6814.0L1310,-6925.0L1302,-6950.0L1307,-6984.0L1288,-7030.0L1308,-7031.0L1309,-7074.0L1321,-7097.0L1313,-7141.0L1323,-7176.0L1338,-7189.0L1370,-7235.0Z"/>
+    <text class="plabel" data-name="Misamis Oriental" x="4252" y="-1699">Misamis Or.</text>
+    <text class="plabel" data-name="Tawi-Tawi" x="950" y="738">Tawi-Tawi</text>
+    <text class="plabel" data-name="Bohol" x="3868" y="-2496">Bohol</text>
+    <text class="plabel" data-name="Cebu" x="3559" y="-2906">Cebu</text>
+    <text class="plabel" data-name="Basilan" x="2361" y="-294">Basilan</text>
+    <text class="plabel" data-name="Zamboanga Sibugay" x="2883" y="-969">Zamboanga Sibugay</text>
+    <text class="plabel" data-name="Sulu" x="1761" y="155">Sulu</text>
+    <text class="plabel" data-name="Antique" x="2358" y="-3461">Antique</text>
+    <text class="plabel" data-name="Palawan" x="717" y="-3129">Palawan</text>
+    <text class="plabel" data-name="Romblon" x="2492" y="-4229">Romblon</text>
+    <text class="plabel" data-name="Albay" x="3559" y="-4757">Albay</text>
+    <text class="plabel" data-name="Camarines Sur" x="3260" y="-5104">Camarines Sur</text>
+    <text class="plabel" data-name="Naga" x="3206" y="-5008">Naga</text>
+    <text class="plabel" data-name="Batanes" x="2354" y="-9627">Batanes</text>
+    <text class="plabel" data-name="Cagayan" x="2176" y="-8357">Cagayan</text>
+    <text class="plabel" data-name="Pangasinan" x="1256" y="-6638">Pangasinan</text>
+    <text class="plabel" data-name="Batangas" x="1714" y="-5181">Batangas</text>
+    <text class="plabel" data-name="Mindoro Occidental" x="1522" y="-4676">Mindoro Occ.</text>
+    <text class="plabel" data-name="Quezon" x="2407" y="-5470">Quezon</text>
+    <text class="plabel" data-name="Eastern Samar" x="4688" y="-3654">E. Samar</text>
+    <text class="plabel" data-name="Leyte" x="4161" y="-3190">Leyte</text>
+    <text class="plabel" data-name="Samar" x="4299" y="-3789">Samar</text>
+    <text class="plabel" data-name="Northern Samar" x="4235" y="-4202">N. Samar</text>
+    <text class="plabel" data-name="Camiguin" x="4210" y="-2021">Camiguin</text>
+    <text class="plabel" data-name="Surigao del Norte" x="4883" y="-2509">Surigao N.</text>
+    <text class="plabel" data-name="Davao del Sur" x="4673" y="-83">Davao S.</text>
+    <text class="plabel" data-name="Isabela" x="2371" y="-360">Isabela</text>
+    <text class="plabel" data-name="Lapu-Lapu" x="3709" y="-2782">Lapu-Lapu</text>
+    <text class="plabel" data-name="Iloilo" x="2836" y="-3299">Iloilo</text>
+    <text class="plabel" data-name="Angeles" x="1481" y="-6037">Angeles</text>
+    <text class="plabel" data-name="Baguio" x="1508" y="-6886">Baguio</text>
+    <text class="plabel" data-name="Laguna" x="1917" y="-5479">Laguna</text>
+    <text class="plabel" data-name="Rizal" x="1915" y="-5641">Rizal</text>
+    <text class="plabel" data-name="Lanao del Norte" x="3716" y="-1214">Lanao N.</text>
+    <text class="plabel" data-name="Iligan" x="4015" y="-1373">Iligan</text>
+    <text class="plabel" data-name="Lanao del Sur" x="3958" y="-1129">Lanao S.</text>
+    <text class="plabel" data-name="Cotabato" x="4270" y="-735">Cotabato</text>
+    <text class="plabel" data-name="Maguindanao" x="4029" y="-626">Maguindanao</text>
+    <text class="plabel" data-name="Sultan Kudarat" x="4173" y="-276">Sultan Kudarat</text>
+    <text class="plabel" data-name="South Cotabato" x="4280" y="-134">South Cotabato</text>
+    <text class="plabel" data-name="Sarangani" x="4409" y="66">Sarangani</text>
+    <text class="plabel" data-name="Agusan del Norte" x="4721" y="-1941">Agusan N.</text>
+    <text class="plabel" data-name="Surigao del Sur" x="5143" y="-1736">Surigao S.</text>
+    <text class="plabel" data-name="Agusan del Sur" x="4911" y="-1609">Agusan S.</text>
+    <text class="plabel" data-name="Davao Oriental" x="5261" y="-693">Davao Or.</text>
+    <text class="plabel" data-name="Davao del Norte" x="4855" y="-898">Davao N.</text>
+    <text class="plabel" data-name="Bukidnon" x="4364" y="-1204">Bukidnon</text>
+    <text class="plabel" data-name="Compostela Valley" x="5039" y="-938">Compostela Valley</text>
+    <text class="plabel" data-name="Cebu" x="3649" y="-2812">Cebu</text>
+    <text class="plabel" data-name="Mandaue" x="3684" y="-2820">Mandaue</text>
+    <text class="plabel" data-name="Bacolod" x="3034" y="-3018">Bacolod</text>
+    <text class="plabel" data-name="Iloilo" x="2754" y="-3081">Iloilo</text>
+    <text class="plabel" data-name="Cotabato" x="3879" y="-732">Cotabato</text>
+    <text class="plabel" data-name="Davao" x="4688" y="-759">Davao</text>
+    <text class="plabel" data-name="General Santos" x="4498" y="6">General Santos</text>
+    <text class="plabel" data-name="Cagayan de Oro" x="4136" y="-1513">Cagayan de Oro</text>
+    <text class="plabel" data-name="Butuan" x="4769" y="-1868">Butuan</text>
+    <text class="plabel" data-name="Puerto Princesa" x="243" y="-2542">Puerto Princesa</text>
+    <text class="plabel" data-name="Ormoc" x="4097" y="-3291">Ormoc</text>
+    <text class="plabel" data-name="Tacloban" x="4363" y="-3437">Tacloban</text>
+    <text class="plabel" data-name="Nueva Vizcaya" x="1859" y="-6831">Nueva Vizcaya</text>
+    <text class="plabel" data-name="Santiago" x="2057" y="-7092">Santiago</text>
+    <text class="plabel" data-name="Olongapo" x="1301" y="-5852">Olongapo</text>
+    <text class="plabel" data-name="Dagupan" x="1310" y="-6645">Dagupan</text>
+    <text class="plabel" data-name="Mandaluyong City" x="1777" y="-5658">Mandaluyong City</text>
+    <text class="plabel" data-name="Manila" x="1744" y="-5672">Manila</text>
+    <text class="plabel" data-name="Navotas" x="1711" y="-5711">Navotas</text>
+    <text class="plabel" data-name="Caloocan" x="1758" y="-5728">Caloocan</text>
+    <text class="plabel" data-name="Malabon" x="1725" y="-5717">Malabon</text>
+    <text class="plabel" data-name="Valenzuela" x="1744" y="-5735">Valenzuela</text>
+    <text class="plabel" data-name="Quezon City" x="1794" y="-5719">Quezon City</text>
+    <text class="plabel" data-name="Marikina" x="1821" y="-5693">Marikina</text>
+    <text class="plabel" data-name="San Juan" x="1776" y="-5669">San Juan</text>
+    <text class="plabel" data-name="Pasig" x="1806" y="-5653">Pasig</text>
+    <text class="plabel" data-name="Makati" x="1778" y="-5639">Makati</text>
+    <text class="plabel" data-name="Pasay" x="1749" y="-5628">Pasay</text>
+    <text class="plabel" data-name="Paranaque" x="1753" y="-5601">Paranaque</text>
+    <text class="plabel" data-name="Las Pinas" x="1737" y="-5583">Las Pinas</text>
+    <text class="plabel" data-name="Muntinlupa" x="1779" y="-5551">Muntinlupa</text>
+    <text class="plabel" data-name="Taguig" x="1796" y="-5615">Taguig</text>
+    <text class="plabel" data-name="Pateros" x="1799" y="-5634">Pateros</text>
+    <text class="plabel" data-name="Lucena" x="2122" y="-5217">Lucena</text>
+    <text class="plabel" data-name="Zamboanga" x="2503" y="-713">Zamboanga</text>
+    <text class="plabel" data-name="Zamboanga del Sur" x="3269" y="-1088">Zamboanga S.</text>
+    <text class="plabel" data-name="Negros Occidental" x="3039" y="-2832">Negros Occ.</text>
+    <text class="plabel" data-name="Zamboanga del Norte" x="2864" y="-1231">Zamboanga N.</text>
+    <text class="plabel" data-name="Misamis Occidental" x="3512" y="-1437">Misamis Occ.</text>
+    <text class="plabel" data-name="Abra" x="1639" y="-7655">Abra</text>
+    <text class="plabel" data-name="Apayao" x="1861" y="-8013">Apayao</text>
+    <text class="plabel" data-name="Kalinga" x="1933" y="-7585">Kalinga</text>
+    <text class="plabel" data-name="Aurora" x="2227" y="-6492">Aurora</text>
+    <text class="plabel" data-name="Isabela" x="2370" y="-7274">Isabela</text>
+    <text class="plabel" data-name="Ifugao" x="1915" y="-7199">Ifugao</text>
+    <text class="plabel" data-name="Mountain Province" x="1831" y="-7339">Mountain</text>
+    <text class="plabel" data-name="Quirino" x="2089" y="-6875">Quirino</text>
+    <text class="plabel" data-name="Nueva Ecija" x="1713" y="-6343">Nueva Ecija</text>
+    <text class="plabel" data-name="Pampanga" x="1512" y="-5991">Pampanga</text>
+    <text class="plabel" data-name="Bataan" x="1363" y="-5746">Bataan</text>
+    <text class="plabel" data-name="Benguet" x="1564" y="-6959">Benguet</text>
+    <text class="plabel" data-name="Zambales" x="1186" y="-6159">Zambales</text>
+    <text class="plabel" data-name="Cavite" x="1658" y="-5453">Cavite</text>
+    <text class="plabel" data-name="Bulacan" x="1783" y="-5886">Bulacan</text>
+    <text class="plabel" data-name="Mindoro Oriental" x="1912" y="-4601">Mindoro Or.</text>
+    <text class="plabel" data-name="Siquijor" x="3464" y="-2040">Siquijor</text>
+    <text class="plabel" data-name="Guimaras" x="2790" y="-2967">Guimaras</text>
+    <text class="plabel" data-name="Catanduanes" x="3864" y="-5128">Catanduanes</text>
+    <text class="plabel" data-name="Masbate" x="3372" y="-4178">Masbate</text>
+    <text class="plabel" data-name="Marinduque" x="2380" y="-4870">Marinduque</text>
+    <text class="plabel" data-name="Biliran" x="4035" y="-3646">Biliran</text>
+    <text class="plabel" data-name="Southern Leyte" x="4441" y="-2760">S. Leyte</text>
+    <text class="plabel" data-name="Negros Oriental" x="3128" y="-2357">Negros Or.</text>
+    <text class="plabel" data-name="Aklan" x="2529" y="-3678">Aklan</text>
+    <text class="plabel" data-name="Capiz" x="2833" y="-3506">Capiz</text>
+    <text class="plabel" data-name="Camarines Norte" x="2828" y="-5377">Camarines Norte</text>
+    <text class="plabel" data-name="Sorsogon" x="3643" y="-4517">Sorsogon</text>
+    <text class="plabel" data-name="Ilocos Norte" x="1601" y="-8099">Ilocos Norte</text>
+    <text class="plabel" data-name="Ilocos Sur" x="1468" y="-7470">Ilocos Sur</text>
+    <text class="plabel" data-name="Tarlac" x="1438" y="-6268">Tarlac</text>
+    <text class="plabel" data-name="La Union" x="1378" y="-7023">La Union</text>
+      </g>
+    </svg>
+
+    <div class="zoom-controls">
+      <button class="zoom-button" onclick="zoomMap(1.2)" title="Zoom in">+</button>
+      <button class="zoom-button" onclick="zoomMap(0.8)" title="Zoom out">−</button>
+      <button class="zoom-button" onclick="resetZoom()" title="Reset zoom">⟳</button>
+    </div>
+
+    <div class="tip" id="tip">
+      <div class="tip-head">
+        <button class="tc" onclick="closeTip()">×</button>
+        <div class="treg" id="t-reg"></div>
+        <div class="tname" id="t-name"></div>
+      </div>
+      <div class="tip-body">
+        <div class="tip-pct-row">
+          <span class="tip-pct" id="t-pct">—</span>
+          <span class="tip-frac" id="t-frac"></span>
+        </div>
+        <div class="tip-bar"><div class="tip-fill" id="t-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const PROVINCES = [{"name":"Misamis Oriental","reg":"Region X \u2013 Northern Mindanao","id":"misamis-oriental"},{"name":"Tawi-Tawi","reg":"BARMM","id":"tawi-tawi"},{"name":"Bohol","reg":"Region VII \u2013 Central Visayas","id":"bohol"},{"name":"Cebu","reg":"Region VII \u2013 Central Visayas","id":"cebu"},{"name":"Basilan","reg":"BARMM","id":"basilan"},{"name":"Zamboanga Sibugay","reg":"Region IX \u2013 Zamboanga Peninsula","id":"zamboanga-sibugay"},{"name":"Sulu","reg":"BARMM","id":"sulu"},{"name":"Antique","reg":"Region VI \u2013 Western Visayas","id":"antique"},{"name":"Palawan","reg":"Region IV-B \u2013 MIMAROPA","id":"palawan"},{"name":"Romblon","reg":"Region IV-B \u2013 MIMAROPA","id":"romblon"},{"name":"Albay","reg":"Region V \u2013 Bicol","id":"albay"},{"name":"Camarines Sur","reg":"Region V \u2013 Bicol","id":"camarines-sur"},{"name":"Naga","reg":"Region V \u2013 Bicol","id":"naga"},{"name":"Batanes","reg":"Region II \u2013 Cagayan Valley","id":"batanes"},{"name":"Cagayan","reg":"Region II \u2013 Cagayan Valley","id":"cagayan"},{"name":"Pangasinan","reg":"Region I \u2013 Ilocos","id":"pangasinan"},{"name":"Batangas","reg":"Region IV-A \u2013 CALABARZON","id":"batangas"},{"name":"Mindoro Occidental","reg":"Region IV-B \u2013 MIMAROPA","id":"mindoro-occidental"},{"name":"Quezon","reg":"Region IV-A \u2013 CALABARZON","id":"quezon"},{"name":"Eastern Samar","reg":"Region VIII \u2013 Eastern Visayas","id":"eastern-samar"},{"name":"Leyte","reg":"Region VIII \u2013 Eastern Visayas","id":"leyte"},{"name":"Samar","reg":"Region VIII \u2013 Eastern Visayas","id":"samar"},{"name":"Northern Samar","reg":"Region VIII \u2013 Eastern Visayas","id":"northern-samar"},{"name":"Camiguin","reg":"Region X \u2013 Northern Mindanao","id":"camiguin"},{"name":"Surigao del Norte","reg":"Region XIII \u2013 Caraga","id":"surigao-del-norte"},{"name":"Davao del Sur","reg":"Region XI \u2013 Davao","id":"davao-del-sur"},{"name":"Isabela","reg":"Region IX \u2013 Zamboanga Peninsula","id":"isabela"},{"name":"Lapu-Lapu","reg":"Region VII \u2013 Central Visayas","id":"lapu-lapu"},{"name":"Iloilo","reg":"Region VI \u2013 Western Visayas","id":"iloilo"},{"name":"Angeles","reg":"Region III \u2013 Central Luzon","id":"angeles"},{"name":"Baguio","reg":"CAR","id":"baguio"},{"name":"Laguna","reg":"Region IV-A \u2013 CALABARZON","id":"laguna"},{"name":"Rizal","reg":"Region IV-A \u2013 CALABARZON","id":"rizal"},{"name":"Lanao del Norte","reg":"Region X \u2013 Northern Mindanao","id":"lanao-del-norte"},{"name":"Iligan","reg":"Region X \u2013 Northern Mindanao","id":"iligan"},{"name":"Lanao del Sur","reg":"BARMM","id":"lanao-del-sur"},{"name":"Cotabato","reg":"Region XII \u2013 SOCCSKSARGEN","id":"cotabato"},{"name":"Maguindanao","reg":"BARMM","id":"maguindanao"},{"name":"Sultan Kudarat","reg":"Region XII \u2013 SOCCSKSARGEN","id":"sultan-kudarat"},{"name":"South Cotabato","reg":"Region XII \u2013 SOCCSKSARGEN","id":"south-cotabato"},{"name":"Sarangani","reg":"Region XII \u2013 SOCCSKSARGEN","id":"sarangani"},{"name":"Agusan del Norte","reg":"Region XIII \u2013 Caraga","id":"agusan-del-norte"},{"name":"Surigao del Sur","reg":"Region XIII \u2013 Caraga","id":"surigao-del-sur"},{"name":"Agusan del Sur","reg":"Region XIII \u2013 Caraga","id":"agusan-del-sur"},{"name":"Davao Oriental","reg":"Region XI \u2013 Davao","id":"davao-oriental"},{"name":"Davao del Norte","reg":"Region XI \u2013 Davao","id":"davao-del-norte"},{"name":"Bukidnon","reg":"Region X \u2013 Northern Mindanao","id":"bukidnon"},{"name":"Compostela Valley","reg":"Region XI \u2013 Davao","id":"compostela-valley"},{"name":"Mandaue","reg":"Region VII \u2013 Central Visayas","id":"mandaue"},{"name":"Bacolod","reg":"Region VI \u2013 Western Visayas","id":"bacolod"},{"name":"Davao","reg":"Region XI \u2013 Davao","id":"davao"},{"name":"General Santos","reg":"Region XII \u2013 SOCCSKSARGEN","id":"general-santos"},{"name":"Cagayan de Oro","reg":"Region X \u2013 Northern Mindanao","id":"cagayan-de-oro"},{"name":"Butuan","reg":"Region XIII \u2013 Caraga","id":"butuan"},{"name":"Puerto Princesa","reg":"Region IV-B \u2013 MIMAROPA","id":"puerto-princesa"},{"name":"Ormoc","reg":"Region VIII \u2013 Eastern Visayas","id":"ormoc"},{"name":"Tacloban","reg":"Region VIII \u2013 Eastern Visayas","id":"tacloban"},{"name":"Nueva Vizcaya","reg":"Region II \u2013 Cagayan Valley","id":"nueva-vizcaya"},{"name":"Santiago","reg":"Region II \u2013 Cagayan Valley","id":"santiago"},{"name":"Olongapo","reg":"Region III \u2013 Central Luzon","id":"olongapo"},{"name":"Dagupan","reg":"Region I \u2013 Ilocos","id":"dagupan"},{"name":"Mandaluyong City","reg":"NCR","id":"mandaluyong-city"},{"name":"Manila","reg":"NCR","id":"manila"},{"name":"Navotas","reg":"NCR","id":"navotas"},{"name":"Caloocan","reg":"NCR","id":"caloocan"},{"name":"Malabon","reg":"NCR","id":"malabon"},{"name":"Valenzuela","reg":"NCR","id":"valenzuela"},{"name":"Quezon City","reg":"NCR","id":"quezon-city"},{"name":"Marikina","reg":"NCR","id":"marikina"},{"name":"San Juan","reg":"NCR","id":"san-juan"},{"name":"Pasig","reg":"NCR","id":"pasig"},{"name":"Makati","reg":"NCR","id":"makati"},{"name":"Pasay","reg":"NCR","id":"pasay"},{"name":"Paranaque","reg":"NCR","id":"paranaque"},{"name":"Las Pinas","reg":"NCR","id":"las-pinas"},{"name":"Muntinlupa","reg":"NCR","id":"muntinlupa"},{"name":"Taguig","reg":"NCR","id":"taguig"},{"name":"Pateros","reg":"NCR","id":"pateros"},{"name":"Lucena","reg":"Region IV-A \u2013 CALABARZON","id":"lucena"},{"name":"Zamboanga","reg":"Region IX \u2013 Zamboanga Peninsula","id":"zamboanga"},{"name":"Zamboanga del Sur","reg":"Region IX \u2013 Zamboanga Peninsula","id":"zamboanga-del-sur"},{"name":"Negros Occidental","reg":"Region VI \u2013 Western Visayas","id":"negros-occidental"},{"name":"Zamboanga del Norte","reg":"Region IX \u2013 Zamboanga Peninsula","id":"zamboanga-del-norte"},{"name":"Misamis Occidental","reg":"Region X \u2013 Northern Mindanao","id":"misamis-occidental"},{"name":"Abra","reg":"CAR","id":"abra"},{"name":"Apayao","reg":"CAR","id":"apayao"},{"name":"Kalinga","reg":"CAR","id":"kalinga"},{"name":"Aurora","reg":"Region III \u2013 Central Luzon","id":"aurora"},{"name":"Ifugao","reg":"CAR","id":"ifugao"},{"name":"Mountain Province","reg":"CAR","id":"mountain-province"},{"name":"Quirino","reg":"Region II \u2013 Cagayan Valley","id":"quirino"},{"name":"Nueva Ecija","reg":"Region III \u2013 Central Luzon","id":"nueva-ecija"},{"name":"Pampanga","reg":"Region III \u2013 Central Luzon","id":"pampanga"},{"name":"Bataan","reg":"Region III \u2013 Central Luzon","id":"bataan"},{"name":"Benguet","reg":"CAR","id":"benguet"},{"name":"Zambales","reg":"Region III \u2013 Central Luzon","id":"zambales"},{"name":"Cavite","reg":"Region IV-A \u2013 CALABARZON","id":"cavite"},{"name":"Bulacan","reg":"Region III \u2013 Central Luzon","id":"bulacan"},{"name":"Mindoro Oriental","reg":"Region IV-B \u2013 MIMAROPA","id":"mindoro-oriental"},{"name":"Siquijor","reg":"Region VII \u2013 Central Visayas","id":"siquijor"},{"name":"Guimaras","reg":"Region VI \u2013 Western Visayas","id":"guimaras"},{"name":"Catanduanes","reg":"Region V \u2013 Bicol","id":"catanduanes"},{"name":"Masbate","reg":"Region V \u2013 Bicol","id":"masbate"},{"name":"Marinduque","reg":"Region IV-B \u2013 MIMAROPA","id":"marinduque"},{"name":"Biliran","reg":"Region VIII \u2013 Eastern Visayas","id":"biliran"},{"name":"Southern Leyte","reg":"Region VIII \u2013 Eastern Visayas","id":"southern-leyte"},{"name":"Negros Oriental","reg":"Region VII \u2013 Central Visayas","id":"negros-oriental"},{"name":"Aklan","reg":"Region VI \u2013 Western Visayas","id":"aklan"},{"name":"Capiz","reg":"Region VI \u2013 Western Visayas","id":"capiz"},{"name":"Camarines Norte","reg":"Region V \u2013 Bicol","id":"camarines-norte"},{"name":"Sorsogon","reg":"Region V \u2013 Bicol","id":"sorsogon"},{"name":"Ilocos Norte","reg":"Region I \u2013 Ilocos","id":"ilocos-norte"},{"name":"Ilocos Sur","reg":"Region I \u2013 Ilocos","id":"ilocos-sur"},{"name":"Tarlac","reg":"Region III \u2013 Central Luzon","id":"tarlac"},{"name":"La Union","reg":"Region I \u2013 Ilocos","id":"la-union"}];
+
+const ID_PROVINCE=["Albay","Abra","Abra","Abra","Abra","Abra","Abra","Abra","Abra","Apayao","Apayao","Apayao","Apayao","Apayao","Apayao","Apayao","Benguet","Baguio","Baguio","Benguet","Benguet","Benguet","Benguet","Benguet","Baguio","Benguet","Benguet","Benguet","Benguet","Benguet","Baguio","Baguio","Baguio","Benguet","Ifugao","Ifugao","Ifugao","Ifugao","Ifugao","Ifugao","Ifugao","Ifugao","Ifugao","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Kalinga","Mountain Province","Mountain Province","Mountain Province","Mountain Province","Mountain Province","Mountain Province","Mountain Province","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Norte","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","Ilocos Sur","La Union","La Union","La Union","La Union","La Union","La Union","La Union","La Union","La Union","La Union","La Union","La Union","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Pangasinan","Batanes","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Cagayan","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Nueva Vizcaya","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Isabela","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Nueva Vizcaya","Quirino","Quirino","Quirino","Quirino","Aurora","Aurora","Aurora","Aurora","Aurora","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bataan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Bulacan","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Zambales","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Nueva Ecija","Angeles","Angeles","Angeles","Angeles","Angeles","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Angeles","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Angeles","Pampanga","Pampanga","Pampanga","Angeles","Angeles","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Angeles","Pampanga","Pampanga","Pampanga","Pampanga","Pampanga","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Tarlac","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Zambales","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Caloocan","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Makati","Makati","Makati","Metro Manila","Metro Manila","Metro Manila","Mandaluyong City","Mandaluyong City","Mandaluyong City","Mandaluyong City","Marikina","Marikina","Marikina","Marikina","Marikina","Marikina","Marikina","Marikina","Marikina","Muntinlupa","Muntinlupa","Muntinlupa","Muntinlupa","Muntinlupa","Muntinlupa","Muntinlupa","Metro Manila","Paranaque","Paranaque","Paranaque","Paranaque","Paranaque","Paranaque","Paranaque","Paranaque","Paranaque","Pasay","Pasay","Pasay","Pasay","Pasay","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pasig","Pateros","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Quezon City","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Metro Manila","Valenzuela","Valenzuela","Valenzuela","Valenzuela","Valenzuela","Valenzuela","Rizal","Rizal","Rizal","Rizal","Rizal","","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","Rizal","","","","","Rizal","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Batangas","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Cavite","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Laguna","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","Quezon","","Batangas","Batangas","Batangas","Batangas","","","Batangas","Batangas","Batangas","","Batangas","","","Batangas","","","Batangas","","","","","","","","","","","","","Batangas","","","Batangas","Batangas","","","","Romblon","","","Batangas","","","","","Batangas","","","","Romblon","","","","","","","","","","","Batangas","","","Marinduque","Marinduque","Marinduque","Occidental Mindoro","Mindoro Occidental","Mindoro Occidental","Mindoro Occidental","","Mindoro Occidental","Romblon","Marinduque","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Palawan","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Mindoro Oriental","Palawan","Puerto Princesa","Puerto Princesa","Palawan","Palawan","Palawan","","Palawan","Palawan","","Mindoro Occidental","Palawan","Palawan","","Palawan","Palawan","Puerto Princesa","Palawan","Puerto Princesa","Palawan","Palawan","Palawan","","Palawan","Palawan","","Romblon","Romblon","Romblon","Romblon","Romblon","Romblon","Romblon","Romblon","Romblon","Romblon","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Albay","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Camarines Norte","Naga","Naga","Camarines Sur","Camarines Sur","Camarines Sur","Camarines Sur","Naga","Camarines Sur","Camarines Sur","Camarines Sur","Naga","Naga","Camarines Sur","Camarines Sur","Naga","Camarines Sur","Camarines Sur","Camarines Sur","Naga","Camarines Sur","Camarines Sur","Camarines Sur","Camarines Sur","Naga","Camarines Sur","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Catanduanes","Masbate","Masbate","Masbate","Masbate","Masbate","Masbate","Masbate","Masbate","Masbate","Masbate","Masbate","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Sorsogon","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Aklan","Antique","Antique","Antique","Antique","Antique","Antique","Capiz","Antique","Antique","Antique","Antique","Antique","Antique","Negros Occidental","Capiz","Capiz","Capiz","Capiz","Capiz","Capiz","Capiz","Capiz","Capiz","Guimaras","Guimaras","Guimaras","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Iloilo","Bacolod","Negros Occidental","Bacolod","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Bacolod","Negros Occidental","Negros Occidental","Bacolod","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Negros Occidental","Bacolod","Negros Occidental","Negros Occidental","Negros Occidental","Bacolod","Negros Occidental","Bacolod","Negros Occidental","Negros Occidental","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Cebu","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Bohol","Cebu","Cebu","Cebu","Mandaue","Cebu","Cebu","Cebu","Lapu-Lapu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Mandaue","Cebu","Cebu","Cebu","Cebu","Cebu","Mandaue","Cebu","Cebu","Cebu","Lapu-Lapu","Lapu-Lapu","Lapu-Lapu","Mandaue","Cebu","Cebu","Cebu","Cebu","Cebu","Lapu-Lapu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Cebu","Lapu-Lapu","Mandaue","Cebu","Cebu","Mandaue","Cebu","Cebu","Cebu","Mandaue","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Negros Oriental","Siquijor","Siquijor","Biliran","Eastern Samar","Northern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Eastern Samar","Leyte","Tacloban","Leyte","Leyte","Leyte","Leyte","Leyte","Leyte","Tacloban","Tacloban","Leyte","Tacloban","Leyte","Ormoc","Leyte","Leyte","Leyte","Leyte","Leyte","Leyte","Leyte","Leyte","Leyte","Tacloban","Leyte","Ormoc","Ormoc","Ormoc","Leyte","Leyte","Tacloban","Tacloban","Leyte","Leyte","Leyte","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Northern Samar","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Southern Leyte","Samar","Samar","Samar","Samar","Samar","Samar","Samar","Samar","Samar","Samar","Samar","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Norte","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga City","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga del Sur","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga Sibugay","Zamboanga del Sur","Zamboanga Sibugay","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Bukidnon","Camiguin","Camiguin","Iligan","Lanao del Norte","Lanao del Norte","Lanao del Norte","Lanao del Norte","Iligan","Lanao del Norte","Iligan","Iligan","Iligan","Lanao del Norte","Lanao del Norte","Lanao del Norte","Lanao del Norte","Lanao del Norte","Iligan","Iligan","Lanao del Norte","Lanao del Norte","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Misamis Occidental","Cagayan de Oro","Cagayan de Oro","Cagayan de Oro","Cagayan de Oro","Cagayan de Oro","Cagayan de Oro","Cagayan de Oro","Misamis Oriental","Misamis Oriental","Cagayan de Oro","Misamis Oriental","Misamis Oriental","Cagayan de Oro","Cagayan de Oro","Misamis Oriental","Misamis Oriental","Misamis Oriental","Misamis Oriental","Lanao del Norte","Misamis Oriental","Misamis Oriental","Misamis Oriental","Cagayan de Oro","Misamis Oriental","Cagayan de Oro","Misamis Oriental","Misamis Oriental","Cagayan de Oro","Cagayan de Oro","Misamis Oriental","Lanao del Norte","Lanao del Norte","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Compostela Valley","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao Oriental","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao del Norte","Davao","Davao","Davao","Davao del Sur","Davao del Sur","Davao","Davao","Davao","Davao","Davao del Sur","Davao del Sur","Davao","Davao","Davao","Davao","Davao del Sur","Davao","Davao","Davao","Davao del Sur","Davao del Sur","Davao","Davao","Davao","Davao del Sur","Davao del Sur","Davao del Sur","Davao","Davao","Davao del Sur","Davao","Davao del Sur","Davao del Sur","Davao","Davao del Sur","Davao del Sur","Davao del Sur","Davao","Davao","Davao","Davao","Davao del Sur","Davao del Sur","Davao","Davao","Davao del Sur","Davao","Davao del Sur","Davao del Sur","Davao del Sur","Davao","Davao","Davao","Davao del Sur","Davao Occidental","Davao del Sur","Davao Occidental","Davao Occidental","Davao Occidental","Davao del Sur","Davao Occidental","Davao Oriental","Davao Oriental","Davao Oriental","Davao Oriental","Davao Oriental","Davao Oriental","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","","Cotabato","Cotabato","Cotabato","","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","","","","","Cotabato","Cotabato","","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Sarangani","Sarangani","Sarangani","Sarangani","Sarangani","Sarangani","Sarangani","South Cotabato","South Cotabato","General Santos","South Cotabato","South Cotabato","General Santos","South Cotabato","General Santos","South Cotabato","South Cotabato","General Santos","General Santos","General Santos","General Santos","South Cotabato","South Cotabato","General Santos","South Cotabato","South Cotabato","South Cotabato","General Santos","","South Cotabato","South Cotabato","South Cotabato","General Santos","South Cotabato","General Santos","South Cotabato","South Cotabato","General Santos","South Cotabato","General Santos","South Cotabato","South Cotabato","South Cotabato","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Sultan Kudarat","Butuan","Butuan","Butuan","Butuan","Butuan","Agusan del Norte","Agusan del Norte","Butuan","Butuan","Agusan del Norte","Agusan del Norte","Agusan del Norte","Agusan del Norte","Butuan","Agusan del Norte","Agusan del Norte","Agusan del Sur","Agusan del Sur","Agusan del Sur","Agusan del Sur","Agusan del Sur","Dinagat Islands","Agusan del Sur","Surigao del Norte","Agusan del Sur","Agusan del Sur","Dinagat Islands","Dinagat Islands","Dinagat Islands","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Norte","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Surigao del Sur","Basilan","Basilan","Basilan","Basilan","Basilan","Basilan","Basilan","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Cotabato","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Lanao del Sur","Sulu","Maguindanao","Maguindanao","Maguindanao","Maguindanao","Sulu","Maguindanao","Maguindanao","Maguindanao","Maguindanao","Maguindanao","Maguindanao","Maguindanao","Maguindanao","","Maguindanao","Maguindanao","Sulu","Sulu","Sulu","Sulu","Sulu","Sulu","Sulu","Sulu","Sulu","Sulu","Tawi-Tawi"];
+const PROV_TOTALS={"Albay":24,"Abra":8,"Apayao":7,"Benguet":12,"Baguio":6,"Ifugao":9,"Kalinga":11,"Mountain Province":7,"Ilocos Norte":17,"Ilocos Sur":29,"La Union":12,"Pangasinan":52,"Batanes":1,"Cagayan":30,"Isabela":53,"Nueva Vizcaya":11,"Quirino":4,"Aurora":5,"Bataan":16,"Bulacan":64,"Nueva Ecija":37,"Zambales":13,"Angeles":10,"Pampanga":39,"Tarlac":27,"Caloocan":14,"Manila":25,"Metro Manila":28,"Makati":3,"Mandaluyong City":4,"Marikina":9,"Muntinlupa":7,"Pasay":5,"Pasig":13,"Pateros":1,"Quezon City":45,"Valenzuela":6,"Cavite":55,"Batangas":1,"Laguna":54,"Quezon":33,"Romblon":13,"Marinduque":4,"Mindoro Occidental":5,"Mindoro Oriental":17,"Palawan":15,"Puerto Princesa":4,"Camarines Norte":13,"Naga":8,"Camarines Sur":15,"Catanduanes":10,"Masbate":7,"Sorsogon":10,"Aklan":13,"Antique":9,"Capiz":10,"Negros Occidental":24,"Guimaras":3,"Iloilo":25,"Bacolod":7,"Bohol":25,"Cebu":41,"Mandaue":7,"Lapu-Lapu":6,"Negros Oriental":17,"Siquijor":2,"Biliran":1,"Eastern Samar":17,"Northern Samar":12,"Leyte":23,"Tacloban":7,"Ormoc":4,"Southern Leyte":11,"Samar":11,"Zamboanga del Norte":15,"Zamboanga del Sur":30,"Zamboanga Sibugay":11,"Bukidnon":19,"Camiguin":2,"Iligan":7,"Lanao del Norte":14,"Misamis Occidental":13,"Cagayan de Oro":14,"Misamis Oriental":15,"Compostela Valley":11,"Davao del Norte":4,"Davao Oriental":5,"Davao":31,"Davao del Sur":14,"Davao Occidental":2,"Cotabato":35,"Sarangani":7,"South Cotabato":16,"General Santos":13,"Sultan Kudarat":17,"Butuan":8,"Agusan del Norte":7,"Agusan del Sur":6,"Dinagat Islands":4,"Surigao del Norte":11,"Surigao del Sur":9,"Basilan":1,"Lanao del Sur":18,"Sulu":11,"Maguindanao":6,"Tawi-Tawi":1};
+
+// Top-filter state and per-province status breakdowns (computed from Firebase audit_data)
+let provStatusCounts={}; // { provinceName: { total, visited, opportunities, customer, installation } }
+let provHospitals={};
+let currentTopFilter='all';
+
+function getHospitalName(rec){
+  if(!rec||typeof rec!=='object') return '';
+  return (rec.hospital||rec.hospital_name||rec.hospitalName||rec.facility||rec.facility_name||rec.facilityName||rec.name||rec['Facility Name']||rec.location||rec.location_name||rec['Location']||'').toString().trim();
+}
+
+function renderHospitalList(name){
+  const container=document.getElementById('hospital-list');
+  if(!container) return;
+  const entry = name && provHospitals[name] ? provHospitals[name] : null;
+  let hospitals = [];
+  if(entry){
+    if(currentTopFilter==='all'){
+      hospitals = Array.from(entry.all||[]).sort();
+    } else if(currentTopFilter==='logged'){
+      hospitals = Array.from(entry.logged||[]).sort();
+    } else if(currentTopFilter==='not-logged'){
+      hospitals = [];
+    } else {
+      hospitals = Array.from(entry[currentTopFilter]||[]).sort();
+    }
+  }
+  const visitedCount = regVisited[name]||0;
+  const loggedCount = regLogged[name]||0;
+  const loggedRecordCount = provStatusCounts[name] ? ((provStatusCounts[name].visited||0) + (provStatusCounts[name].opportunities||0) + (provStatusCounts[name].customer||0) + (provStatusCounts[name].installation||0)) : 0;
+  if(!name){
+    container.innerHTML = `<div class="hospital-list-heading">Logged hospitals</div><div class="hospital-list-note">Select a city on the map to see hospitals logged there.</div>`;
+    return;
+  }
+  if(!hospitals.length){
+    let note;
+    if(currentTopFilter==='all'){
+      note = loggedRecordCount > 0 ? 'Hospitals were logged for this city, but hospital names are not available in the feed.' : 'No hospitals logged yet for this city.';
+    } else if(currentTopFilter==='not-logged'){
+      note = 'No hospitals logged in the not-logged category for this city.';
+    } else {
+      note = `No hospitals logged under ${currentTopFilter} status for this city.`;
+    }
+    container.innerHTML = `<div class="hospital-list-heading">Logged hospitals in ${escapeHtml(name)}</div><div class="hospital-list-note">${escapeHtml(note)}</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="hospital-list-heading">Logged hospitals in ${escapeHtml(name)}</div><ul>${hospitals.map(h=>`<li>${escapeHtml(h)}</li>`).join('')}</ul>`;
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function getLoggedCount(name){
+  return regLogged[name] || provHospitals[name]?.logged.size || 0;
+}
+
+function matchesTopFilter(name){
+  if(!currentTopFilter||currentTopFilter==='all') return true;
+  const s=(provStatusCounts[name]||{});
+  if(currentTopFilter==='logged') return getLoggedCount(name) > 0;
+  if(currentTopFilter==='not-logged') return getLoggedCount(name)===0;
+  if(currentTopFilter==='opportunities') return (s.opportunities||0)>0;
+  if(currentTopFilter==='customer') return (s.customer||0)>0;
+  if(currentTopFilter==='installation') return (s.installation||0)>0;
+  return true;
+}
+
+function updateFilterCounts(){
+  const list=PROVINCES.filter(p=>matchesTopFilter(p.name));
+  const provCount=list.length;
+  const visits=list.reduce((s,p)=>s+(regVisited[p.name]||0),0);
+  const logged=list.reduce((s,p)=>s+getLoggedCount(p.name),0);
+  const countLabel=currentTopFilter==='logged' ? 'logged' : 'visits';
+  const countValue=currentTopFilter==='logged' ? logged : visits;
+  const targets=list.reduce((s,p)=>s+(PROV_TOTALS[p.name]||0),0);
+  const el=document.getElementById('filter-counts');
+  if(el) el.textContent=`${provCount} prov · ${countValue} ${countLabel} · ${targets} targets`;
+  window.dispatchEvent(new CustomEvent('hospitalFilterChanged', {
+    detail:{filter:currentTopFilter, visible:provCount, visits:countValue, targets}
+  }));
+}
+
+function updateActiveFilterDisplay(filter){
+  const el=document.getElementById('active-filter');
+  if(!el) return;
+  const labels={all:'All', 'not-logged':'Not Logged', logged:'Visited', opportunities:'Opportunities', customer:'Customer', installation:'Installation'};
+  const label=labels[filter]||filter||'All';
+  el.textContent = `Filter: ${label}`;
+}
+
+function applyTopFilter(filter){
+  currentTopFilter=filter||'all';
+  document.querySelectorAll('#top-filter .filter-button').forEach(b=>b.classList.toggle('sel',b.dataset.filter===currentTopFilter));
+  updateActiveFilterDisplay(currentTopFilter);
+  refreshColors();
+  buildSidebar(document.getElementById('srch').value, document.getElementById('rfsel').value);
+  updateFilterCounts();
+}
+
+function getProvinceFill(name){
+  const counts=provStatusCounts[name]||{};
+  const total=PROV_TOTALS[name]||0;
+
+  if(currentTopFilter==='not-logged'){
+    return getLoggedCount(name)===0 ? '#f0f4f0' : '#e8f0e8';
+  }
+
+  // Find the dominant logged status for this province
+  const statuses=[
+    {key:'installation', color:'#2e7d32'},
+    {key:'customer',     color:'#1565c0'},
+    {key:'opportunities',color:'#c62828'},
+    {key:'visited',      color:'#f9a825'},
+  ];
+
+  if(currentTopFilter==='all' || currentTopFilter==='logged'){
+    // Pick the "highest priority" status present (installation > customer > opportunities > visited)
+    for(const s of statuses){
+      if((counts[s.key]||0) > 0) return s.color;
+    }
+    return '#e8f0e8'; // nothing logged
+  }
+  if(currentTopFilter==='opportunities') return (counts.opportunities||0)>0 ? '#c62828' : '#e8f0e8';
+  if(currentTopFilter==='customer')      return (counts.customer||0)>0      ? '#1565c0' : '#e8f0e8';
+  if(currentTopFilter==='installation')  return (counts.installation||0)>0  ? '#2e7d32' : '#e8f0e8';
+  return '#e8f0e8';
+}
+
+// ── COLOR ─────────────────────────────────────────────────────────────────────
+function lerp(a,b,t){return a+(b-a)*t;}
+function h2r(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function r2h(r,g,b){return'#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');}
+function cc(p){
+  if(p==null) return null;
+  const R=h2r('#c62828'),Y=h2r('#f57f17'),G=h2r('#2e7d32');
+  const rgb=p<=50?R.map((v,i)=>lerp(v,Y[i],p/50)):Y.map((v,i)=>lerp(v,G[i],(p-50)/50));
+  return r2h(...rgb);
+}
+function getCov(name){
+  const total=PROV_TOTALS[name]||0;
+  const logged=getLoggedCount(name);
+  if(!total||!logged) return null;
+  return Math.min(100,(logged/total)*100);
+}
+
+// ── MAP SETUP ─────────────────────────────────────────────────────────────────
+const mw=document.getElementById('mw');
+const svg=document.getElementById('mapsvg');
+const defaultViewBox=svg.getAttribute('viewBox').split(' ').map(Number);
+let currentViewBox=[...defaultViewBox];
+let isPanning=false;
+let panStart=null;
+let viewBoxStart=null;
+let hasDragged=false;
+const labelBaseSize=140;
+const labelMaxSize=220;
+const labelMinSize=80;
+const labelElements=Array.from(svg.querySelectorAll('.plabel'));
+const provinceShapes=Array.from(svg.querySelectorAll('.province'));
+const provinceShapeByName=new Map(provinceShapes.map(shape=>[shape.dataset.name, shape]));
+
+function rectsOverlap(a, b){
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function updateLabelAppearance(){
+  const labelEntries=labelElements.map(label=>({
+    label,
+    name: label.dataset.name,
+    size: labelBaseSize,
+    x: 0,
+    y: 0,
+    bbox: null,
+  }));
+
+  const fitLabel = entry => {
+    const shape=provinceShapeByName.get(entry.name);
+    if(!shape) return;
+    const shapeBBox=shape.getBBox();
+    const centerX=shapeBBox.x + shapeBBox.width / 2;
+    const centerY=shapeBBox.y + shapeBBox.height / 2;
+    const maxWidth=shapeBBox.width * 0.8;
+    const maxHeight=shapeBBox.height * 0.45;
+    entry.x=centerX;
+    entry.y=centerY;
+    entry.size=Math.max(labelMinSize, Math.min(labelMaxSize, Math.min(entry.size, Math.min(maxWidth, maxHeight))));
+    entry.label.setAttribute('x', entry.x);
+    entry.label.setAttribute('y', entry.y);
+    entry.label.setAttribute('font-size', entry.size);
+    let textWidth=entry.label.getComputedTextLength();
+    while(textWidth > maxWidth && entry.size > labelMinSize){
+      entry.size -= 2;
+      entry.label.setAttribute('font-size', entry.size);
+      textWidth=entry.label.getComputedTextLength();
+    }
+    const textBBox=entry.label.getBBox();
+    if(textBBox.height > maxHeight && entry.size > labelMinSize){
+      entry.size=Math.max(labelMinSize, Math.min(entry.size, Math.floor(entry.size * maxHeight / textBBox.height)));
+      entry.label.setAttribute('font-size', entry.size);
+    }
+    entry.bbox=entry.label.getBBox();
+  };
+
+  labelEntries.forEach(entry=>fitLabel(entry));
+
+  let changed=true;
+  let passes=0;
+  while(changed && passes < 200){
+    changed=false;
+    passes += 1;
+    for(let i=0;i<labelEntries.length;i++){
+      for(let j=i+1;j<labelEntries.length;j++){
+        const a=labelEntries[i];
+        const b=labelEntries[j];
+        if(!a.bbox || !b.bbox) continue;
+        if(rectsOverlap(a.bbox,b.bbox)){
+          const reduce = a.size >= b.size ? a : b;
+          if(reduce.size > labelMinSize){
+            reduce.size=Math.max(labelMinSize, reduce.size-2);
+            reduce.label.setAttribute('font-size', reduce.size);
+            reduce.bbox=reduce.label.getBBox();
+            changed=true;
+          } else {
+            const move=reduce===a?b:a;
+            const dx = move.bbox.x + move.bbox.width/2 - (reduce.bbox.x + reduce.bbox.width/2);
+            const dy = move.bbox.y + move.bbox.height/2 - (reduce.bbox.y + reduce.bbox.height/2);
+            const shiftX = Math.sign(dx) * 4;
+            const shiftY = Math.sign(dy) * 4;
+            move.x += shiftX;
+            move.y += shiftY;
+            move.label.setAttribute('x', move.x);
+            move.label.setAttribute('y', move.y);
+            move.bbox=move.label.getBBox();
+            changed=true;
+          }
+        }
+      }
+    }
+  }
+}
+
+updateLabelAppearance();
+
+function setViewBox(vb){
+  svg.setAttribute('viewBox', vb.join(' '));
+  currentViewBox=vb;
+  updateLabelAppearance();
+}
+function screenToSvg(clientX, clientY){
+  const rect=svg.getBoundingClientRect();
+  const [x,y,w,h]=currentViewBox;
+  const px = x + ((clientX-rect.left)/rect.width)*w;
+  const py = y + ((clientY-rect.top)/rect.height)*h;
+  return [px,py];
+}
+function zoomMap(factor, centerX=null, centerY=null){
+  const [x,y,w,h]=currentViewBox;
+  const cx = centerX===null ? x + w/2 : centerX;
+  const cy = centerY===null ? y + h/2 : centerY;
+  const newW=Math.max(200, Math.min(defaultViewBox[2]*4, w / factor));
+  const newH=Math.max(200, Math.min(defaultViewBox[3]*4, h / factor));
+  const newX = cx - (cx - x) * (newW / w);
+  const newY = cy - (cy - y) * (newH / h);
+  setViewBox([newX, newY, newW, newH]);
+}
+function resetZoom(){
+  setViewBox([...defaultViewBox]);
+}
+
+svg.style.cursor='grab';
+svg.addEventListener('pointerdown', e=>{
+  if(e.button!==0) return;
+  isPanning=true;
+  panStart={x:e.clientX,y:e.clientY};
+  viewBoxStart=[...currentViewBox];
+  hasDragged=false;
+  svg.setPointerCapture(e.pointerId);
+  svg.style.cursor='grabbing';
+});
+svg.addEventListener('pointermove', e=>{
+  if(!isPanning) return;
+  const dx=e.clientX-panStart.x;
+  const dy=e.clientY-panStart.y;
+  if(Math.abs(dx)+Math.abs(dy) < 4) return;
+  hasDragged=true;
+  const [x,y,w,h]=viewBoxStart;
+  const rect=svg.getBoundingClientRect();
+  const vx = x - dx * (w/rect.width);
+  const vy = y - dy * (h/rect.height);
+  setViewBox([vx, vy, w, h]);
+});
+svg.addEventListener('pointerup', e=>{
+  isPanning=false;
+  svg.releasePointerCapture(e.pointerId);
+  svg.style.cursor='grab';
+});
+svg.addEventListener('pointercancel', ()=>{
+  isPanning=false;
+  svg.style.cursor='grab';
+});
+svg.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+  const [cx,cy]=screenToSvg(e.clientX,e.clientY);
+  zoomMap(zoomFactor,cx,cy);
+});
+
+// SVG viewBox handles all scaling — no JS transform needed
+window.addEventListener('resize', ()=>{}); // no-op
+
+// ── PROVINCE CLICK ────────────────────────────────────────────────────────────
+let selName=null;
+document.querySelectorAll('.province').forEach(el=>{
+  el.addEventListener('click',e=>{
+    e.stopPropagation();
+    openTip(el.dataset.name,el.dataset.reg,el,e);
+  });
+});
+svg.addEventListener('click',()=>closeTip());
+
+function openTip(name,reg,el,evt){
+  selName=name;
+  updateDashboardLink(name);
+  document.querySelectorAll('.province.sel').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+  hlSidebar(name);
+  const pct=getCov(name);
+  const v=regLogged[name]||0, t=PROV_TOTALS[name]||0;
+  document.getElementById('t-reg').textContent=reg;
+  document.getElementById('t-name').textContent=name;
+  document.getElementById('t-pct').textContent=pct!=null?Math.round(pct)+'%':'—';
+  document.getElementById('t-pct').style.color=pct!=null?(cc(pct)||'var(--acc)'):'var(--mut)';
+  document.getElementById('t-frac').textContent=v>0?`${v} of ${t} logged`:'No hospitals logged yet';
+  document.getElementById('t-fill').style.width=(pct||0)+'%';
+  document.getElementById('t-fill').style.background=cc(pct)||'var(--acc)';
+  renderHospitalList(name);
+  const tip=document.getElementById('tip');
+  tip.style.display='block';
+  const r=mw.getBoundingClientRect();
+  let l=evt.clientX-r.left+14, top=evt.clientY-r.top-20;
+  if(l+250>r.width) l=evt.clientX-r.left-258;
+  if(top+220>r.height) top=r.height-228;
+  if(top<8) top=8;
+  tip.style.left=l+'px';tip.style.top=top+'px';
+}
+
+window.closeTip=function(){
+  document.getElementById('tip').style.display='none';
+  document.querySelectorAll('.province.sel').forEach(p=>p.classList.remove('sel'));
+  selName=null;
+  document.querySelectorAll('.pi.active').forEach(p=>p.classList.remove('active'));
+};
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function buildSidebar(filter='',regF=''){
+  const list=document.getElementById('plist');
+  let items=[...PROVINCES]
+    .filter(p=>
+      (!filter||p.name.toLowerCase().includes(filter.toLowerCase()))
+      &&(!regF||p.reg===regF)
+      && matchesTopFilter(p.name)
+    )
+    .map(p=>Object.assign({},p,{pct:getCov(p.name)}))
+    .sort((a,b)=>a.pct!=null&&b.pct!=null?b.pct-a.pct:a.pct!=null?-1:b.pct!=null?1:a.name.localeCompare(b.name));
+  if(!items.length){
+    list.innerHTML='<div style="padding:16px;text-align:center;color:var(--mut);font-size:11px">No results</div>';
+    renderHospitalList(selName);
+    return;
+  }
+  list.innerHTML=items.map(i=>{
+    const c=getProvinceFill(i.name);
+    const logged=getLoggedCount(i.name);
+    const t=PROV_TOTALS[i.name]||0;
+    const sub=t===0 ? 'No data yet' : logged>0 ? `${logged} / ${t} logged` : 'Not yet logged';
+    return `<div class="pi${selName===i.name?' active':''}" data-name="${i.name}" onclick="focusProv('${i.name.replace(/'/g,"\\'")}')">
+      <div class="pd" style="background:${c}"></div>
+      <div class="pii"><div class="pn">${i.name}</div><div class="ps">${sub}</div></div>
+      <div class="pp">${i.pct!=null?i.pct.toFixed(0)+'%':'—'}</div>
+    </div>`;
+  }).join('');
+  renderHospitalList(selName);
+}
+
+function hlSidebar(name){
+  document.querySelectorAll('.pi').forEach(el=>el.classList.toggle('active',el.dataset.name===name));
+  const el=document.querySelector(`.pi[data-name="${name}"]`);
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+
+window.focusProv=function(name){
+  selName=name;
+  const el=document.querySelector(`path[data-name="${name}"]`);
+  if(el){
+    try{
+      const bb=el.getBBox();
+      const r=mw.getBoundingClientRect();
+      openTip(name,el.dataset.reg,el,{clientX:r.left+r.width/2,clientY:r.top+r.height/2});
+    }catch(e){}
+  }
+  hlSidebar(name);
+  updateDashboardLink(name);
+};
+
+window.closeTip=function(){
+  document.getElementById('tip').style.display='none';
+  document.querySelectorAll('.province.sel').forEach(p=>p.classList.remove('sel'));
+  selName=null;
+  document.querySelectorAll('.pi.active').forEach(p=>p.classList.remove('active'));
+  updateDashboardLink(null);
+  shareDashboardData();
+};
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const v=Object.values(regLogged).reduce((s,n)=>s+n,0);
+  const t=1879;
+  document.getElementById('s-v').textContent=v;
+  document.getElementById('s-t').textContent=t;
+  const pct=v>0?((v/t)*100).toFixed(1)+'%':'0%';
+  document.getElementById('s-p').textContent=pct;
+}
+
+// ── COLORS ────────────────────────────────────────────────────────────────────
+function refreshColors(){
+  document.querySelectorAll('.province').forEach(el=>{
+    el.style.fill = getProvinceFill(el.dataset.name);
+  });
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  const searchInput=document.getElementById('srch');
+  const regionSelect=document.getElementById('rfsel');
+  if(searchInput) searchInput.addEventListener('input',e=>buildSidebar(e.target.value,regionSelect?.value));
+  if(regionSelect) regionSelect.addEventListener('change',e=>buildSidebar(searchInput?.value||'',e.target.value));
+  document.querySelectorAll('#top-filter .filter-button').forEach(b=>{
+    b.addEventListener('click',()=>applyTopFilter(b.dataset.filter));
+  });
+  applyTopFilter('all');
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let tTmr;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(tTmr);tTmr=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── FIREBASE POLLING ─────────────────────────────────────────────────────────
+const FB_URL='https://hospital-audit-gasion-default-rtdb.asia-southeast1.firebasedatabase.app';
+const DASHBOARD_URL='https://karlcarter11.github.io/hospital-audit/hospital_dashboard_giti.html';
+const DASHBOARD_SYNC_CHANNEL='hospital-audit-sync';
+const dashboardChannel=('BroadcastChannel' in window)?new BroadcastChannel(DASHBOARD_SYNC_CHANNEL):null;
+let regVisited={};
+let regLogged={};
+let lastHash='';
+
+function getDashboardUrl(name){
+  const url=new URL(DASHBOARD_URL);
+  if(name) url.searchParams.set('province', name);
+  return url.toString();
+}
+
+function updateDashboardLink(name){
+  const link=document.getElementById('dashboard-link');
+  if(!link) return;
+  link.href=getDashboardUrl(name);
+  link.textContent=name?`Open Audit Dashboard for ${name} ↗`:'Open Audit Dashboard ↗';
+}
+
+function shareDashboardData(){
+  const payload={
+    updated:Date.now(),
+    selectedProvince:selName,
+    regVisited,
+    provStatusCounts,
+    provHospitals:Object.fromEntries(Object.entries(provHospitals||{}).map(([prov,entry])=>[prov, Object.fromEntries(Object.entries(entry||{}).map(([category,setValue])=>[category,Array.from(setValue)]))]))
+  };
+  try{
+    localStorage.setItem('hospital-audit-sync',JSON.stringify(payload));
+  }catch(e){/* ignore storage failures */}
+  if(dashboardChannel) dashboardChannel.postMessage(payload);
+}
+
+function requestDashboardRefresh(){
+  try{
+    if(dashboardChannel){
+      dashboardChannel.postMessage({source:'map',request:'refresh'});
+    }
+  }catch(e){/* ignore */}
+}
+
+function setupDashboardSyncListeners(){
+  if(dashboardChannel){
+    dashboardChannel.onmessage = e => {
+      const msg = e.data;
+      if(msg && msg.source==='dashboard' && msg.type==='data-updated'){
+        poll();
+      }
+      if(msg && msg.source==='dashboard' && msg.request==='refresh'){
+        poll();
+      }
+    };
+  }
+  window.addEventListener('storage', e => {
+    if(e.key==='hospital-audit-sync' && e.newValue){
+      poll();
+    }
+  });
+}
+
+function refreshMapData(){
+  const button=document.getElementById('refresh-button');
+  if(button) button.disabled=true;
+  setStatus('loading');
+  toast('Refreshing map data...');
+  poll().finally(()=>{
+    if(button) button.disabled=false;
+  });
+}
+
+function setStatus(state){
+  const el=document.getElementById('fb-status');
+  el.className='fb-dot '+state;
+  el.textContent={loading:'Connecting',live:'Live',error:'Offline'}[state]||state;
+}
+
+function computeRegionCoverage(auditData){
+  // build per-province status counts from raw audit data
+  provStatusCounts={};
+  regVisited={};
+  regLogged={};
+  if(!auditData){
+    refreshColors();
+    buildSidebar(document.getElementById('srch').value, document.getElementById('rfsel').value);
+    updateStats();
+    updateFilterCounts();
+    updateDashboardLink(selName);
+    shareDashboardData();
+    renderHospitalList(selName);
+    return;
+  }
+  provHospitals={};
+  Object.entries(auditData).forEach(([id,rec])=>{
+    const idx=parseInt(id);
+    if(!idx||isNaN(idx)) return;
+    const prov=ID_PROVINCE[idx-1];
+    if(!prov) return;
+    const s=(provStatusCounts[prov] = provStatusCounts[prov]||{total:0,visited:0,opportunities:0,customer:0,installation:0});
+    s.total += 1;
+    const rawStatus = (rec.status||'').toString().trim();
+    const isVisited     = rawStatus === 'Visited';
+    const isOpportunity = rawStatus === 'Opportunities';
+    const isCustomer    = rawStatus === 'Customer';
+    const isInstall     = rawStatus === 'Installation' || rawStatus === 'Malcom Installation';
+    const isLogged      = isVisited || isOpportunity || isCustomer || isInstall;
+    if(!isLogged) return; // skip Not Visited and unrecognized statuses
+    s.total += 1;
+    if(isVisited)     s.visited += 1;
+    if(isOpportunity) s.opportunities += 1;
+    if(isCustomer)    s.customer += 1;
+    if(isInstall)     s.installation += 1;
+    const hname = getHospitalName(rec);
+    if(hname){
+      provHospitals[prov] = provHospitals[prov]||{all:new Set(),visited:new Set(),opportunities:new Set(),customer:new Set(),installation:new Set(),logged:new Set()};
+      provHospitals[prov].all.add(hname);
+      if(isVisited)     provHospitals[prov].visited.add(hname);
+      if(isOpportunity) provHospitals[prov].opportunities.add(hname);
+      if(isCustomer)    provHospitals[prov].customer.add(hname);
+      if(isInstall)     provHospitals[prov].installation.add(hname);
+      if(isLogged)      provHospitals[prov].logged.add(hname);
+    }
+  });
+  // populate regVisited and regLogged from computed counts
+  Object.keys(provStatusCounts).forEach(p=>{
+    const s = provStatusCounts[p];
+    regVisited[p] = s.visited||0;
+    regLogged[p]  = (s.visited||0) + (s.opportunities||0) + (s.customer||0) + (s.installation||0);
+  });
+  refreshColors();
+  buildSidebar(document.getElementById('srch').value, document.getElementById('rfsel').value);
+  updateStats();
+  updateFilterCounts();
+  updateDashboardLink(selName);
+  shareDashboardData();
+  if(selName){
+    const pct=getCov(selName);
+    const v=regLogged[selName]||0, t=PROV_TOTALS[selName]||0;
+    document.getElementById('t-pct').textContent=pct!=null?Math.round(pct)+'%':'—';
+    document.getElementById('t-pct').style.color=pct!=null?(cc(pct)||'var(--acc)'):'var(--mut)';
+    document.getElementById('t-frac').textContent=v>0?`${v} of ${t} logged`:'No hospitals logged yet';
+    document.getElementById('t-fill').style.width=(pct||0)+'%';
+    document.getElementById('t-fill').style.background=cc(pct)||'var(--acc)';
+    renderHospitalList(selName);
+  }
+}
+
+async function poll(){
+  try{
+    const res=await fetch(`${FB_URL}/audit_data.json?t=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    if(text!==lastHash){
+      lastHash=text;
+      const data=JSON.parse(text);
+      // Debug: show what IDs are in Firebase and their status
+      const debug=[];
+      if(data) Object.entries(data).forEach(([id,rec])=>{
+        const idx=parseInt(id);
+        const prov=(!isNaN(idx)&&idx>0)?ID_PROVINCE[idx-1]:'?';
+        debug.push(`ID ${id} → ${prov||'unmapped'} → "${rec.status}"`);
+      });
+      console.log('Firebase records:\n'+debug.join('\n'));
+      computeRegionCoverage(data);
+    }
+    setStatus('live');
+  }catch(e){
+    setStatus('error');
+    console.error('Poll error:',e);
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.province').forEach(el=>{ el.style.fill='#e8f0e8'; });
+buildSidebar();
+setStatus('loading');
+setupDashboardSyncListeners();
+poll();
+setInterval(poll, 5000);
+</script>
+</body>
+</html>
