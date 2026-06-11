@@ -65,14 +65,15 @@ tr:hover td{background:#f7f9ff}
 .overlay.open{display:flex}
 .modal{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:700px;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto}
 .modal h2{font-size:16px;font-weight:700;color:#1a1a2e;padding-bottom:10px;border-bottom:1px solid #e0e4ef;margin-bottom:16px}
-.mform{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mform{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.mform>*{min-width:0}
 .mform .full{grid-column:span 2}
 .mform label{font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px}
 .mform input,.mform select,.mform textarea{width:100%;padding:8px 10px;border:1px solid #d0d5e8;border-radius:6px;font-size:12px;color:#1a1a2e;background:#fff}
 .mform textarea{resize:vertical;height:70px;font-family:inherit}
 .infra{background:#f7f8fc;border-radius:8px;border:1px solid #e0e4ef;padding:14px}
 .infra h4{font-size:12px;font-weight:700;color:#3b5bdb;margin-bottom:10px}
-.checks{display:flex;gap:20px;margin-bottom:10px}
+.checks{display:flex;gap:12px 20px;margin-bottom:10px;flex-wrap:wrap}
 .checks label{font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
 .mbtn{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #e0e4ef}
 .mbtn button{padding:8px 20px;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600}
@@ -101,7 +102,7 @@ tr:hover td{background:#f7f9ff}
   .tabs{overflow-x:auto;padding:0 10px}
   .top{padding:10px 12px}
 }
-@media(max-width:500px){.mform{grid-template-columns:1fr}.mform .full{grid-column:1}}
+@media(max-width:500px){.mform{grid-template-columns:minmax(0,1fr)}.mform .full{grid-column:1}}
 
 #install-section{display:none;background:#e8f5e9;border:1.5px solid #2e7d32;border-radius:8px;padding:14px;margin-top:4px;}
 #install-section.show{display:block;}
