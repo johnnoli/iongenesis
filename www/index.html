@@ -1,5 +1,6 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Philippines Hospital Database 2026</title>
 <style>
 .nav-button{display:inline-flex;align-items:center;gap:6px;background:#1a1a2e;color:#fff;text-decoration:none;font-size:12px;font-weight:500;padding:6px 14px;border-radius:7px;border:1px solid #2e2e4e;transition:background .15s;}
@@ -90,7 +91,17 @@ tr:hover td{background:#f7f9ff}
 .export-btn{padding:7px 14px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
 .export-btn:hover{background:#2d2d4a}
 .cbadge{background:#f3e8ff;color:#6b21a8;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;margin-left:4px}
-@media(max-width:500px){.metrics{grid-template-columns:1fr 1fr}.mform{grid-template-columns:1fr}.mform .full{grid-column:1}}
+/* Tables scroll horizontally inside .tw instead of crushing columns on phones */
+.tw table{min-width:720px}
+@media(max-width:760px){
+  .metrics{grid-template-columns:1fr 1fr}
+  .rrow{grid-template-columns:110px 1fr 44px}
+  .pane{padding:12px 10px}
+  .ctrl{padding:10px}
+  .tabs{overflow-x:auto;padding:0 10px}
+  .top{padding:10px 12px}
+}
+@media(max-width:500px){.mform{grid-template-columns:1fr}.mform .full{grid-column:1}}
 
 #install-section{display:none;background:#e8f5e9;border:1.5px solid #2e7d32;border-radius:8px;padding:14px;margin-top:4px;}
 #install-section.show{display:block;}
